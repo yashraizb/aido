@@ -17,7 +17,7 @@ server.tool(
   }
 );
 
-server.tool('list_tasks', {}, async () => {
+server.tool('list_tasks', 'List all tasks', async () => {
   const tasks = listTasks(db);
   return { content: [{ type: 'text', text: JSON.stringify(tasks) }] };
 });
