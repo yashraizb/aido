@@ -1,3 +1,6 @@
 node_modules/
 db/tasks.db
+db/tasks.db-shm
+db/tasks.db-wal
 .worktrees/
+frontend/dist/

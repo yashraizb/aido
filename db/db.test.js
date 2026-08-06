@@ -10,7 +10,7 @@ test('initDb creates the tasks table with expected columns', () => {
   const db = initDb(tmpPath);
 
   const columns = db.prepare("PRAGMA table_info(tasks)").all().map(c => c.name);
-  assert.deepStrictEqual(columns.sort(), ['created_at', 'id', 'status', 'title'].sort());
+  assert.deepStrictEqual(columns.sort(), ['created_at', 'id', 'list_id', 'status', 'title', 'updated_at'].sort());
 
   db.close();
   fs.unlinkSync(tmpPath);

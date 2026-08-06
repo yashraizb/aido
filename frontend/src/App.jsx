@@ -1,47 +1,417 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  createList,
+  createTask,
+  deleteTask as deleteTaskRequest,
+  getTasks,
+  getLists,
+  removeList,
+  renameList,
+  setStatus,
+  updateTaskLinkedLists,
+  updateTaskTitle,
+} from './api.js';
+import AddTaskModal from './components/AddTaskModal.jsx';
+import TaskList from './components/TaskList.jsx';
+import CompletedSection from './components/CompletedSection.jsx';
 
-const API_URL = 'http://localhost:3001/tasks';
 const POLL_INTERVAL_MS = 3000;
 
 export default function App() {
-  const [tasks, setTasks] = useState([]);
+  const [lists, setLists] = useState([]);
+  const [checkedListIds, setCheckedListIds] = useState([]);
+  const [newListName, setNewListName] = useState('');
+  const [renamingListId, setRenamingListId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [allTasks, setAllTasks] = useState([]);
   const [error, setError] = useState(null);
+
+  const refreshTasks = useCallback(async () => {
+    const tasks = await getTasks();
+    setAllTasks(tasks);
+  }, []);
+
+  const refreshWorkspace = useCallback(async (preferredCheckedListIds = checkedListIds) => {
+    try {
+      const fetchedLists = await getLists();
+      setLists(fetchedLists);
+
+      if (fetchedLists.length === 0) {
+        setCheckedListIds([]);
+        setAllTasks([]);
+        setError(null);
+        return;
+      }
+
+      const fetchedIds = new Set(fetchedLists.map((list) => list.id));
+      let effectiveChecked = preferredCheckedListIds.filter((id) => fetchedIds.has(id));
+      if (effectiveChecked.length === 0) {
+        effectiveChecked = [fetchedLists[0].id];
+      }
+
+      setCheckedListIds(effectiveChecked);
+      await refreshTasks();
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [checkedListIds, refreshTasks]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchTasks() {
+    async function poll() {
       try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        if (!cancelled) {
-          setTasks(data);
+        const fetchedLists = await getLists();
+        if (cancelled) return;
+
+        setLists(fetchedLists);
+
+        if (fetchedLists.length === 0) {
+          setCheckedListIds([]);
+          setAllTasks([]);
           setError(null);
+          return;
         }
+
+        const fetchedIds = new Set(fetchedLists.map((list) => list.id));
+        let effectiveChecked = checkedListIds.filter((id) => fetchedIds.has(id));
+        if (effectiveChecked.length === 0) {
+          effectiveChecked = [fetchedLists[0].id];
+          setCheckedListIds(effectiveChecked);
+        }
+
+        const tasks = await getTasks();
+        if (cancelled) return;
+        setAllTasks(tasks);
+        setError(null);
       } catch (err) {
         if (!cancelled) setError(err.message);
       }
     }
 
-    fetchTasks();
-    const id = setInterval(fetchTasks, POLL_INTERVAL_MS);
+    poll();
+    const id = setInterval(poll, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, []);
+  }, [checkedListIds]);
+
+  const tasksForList = useCallback(
+    (list) =>
+      allTasks.filter((task) => {
+        const linkedListIds = Array.isArray(task.linked_list_ids) ? task.linked_list_ids : [task.list_id];
+        return linkedListIds.includes(list.id);
+      }),
+    [allTasks]
+  );
+
+  const visibleLists = useMemo(
+    () => lists.filter((list) => checkedListIds.includes(list.id)),
+    [lists, checkedListIds]
+  );
+
+  const listOptions = useMemo(() => lists.map((list) => ({ id: list.id, name: list.name })), [lists]);
+
+  async function handleAdd(listId, title, linkedListIds = []) {
+    const previous = allTasks;
+    const optimisticId = `tmp-${Date.now()}`;
+    const optimisticTask = {
+      id: optimisticId,
+      title,
+      status: 'pending',
+      list_id: listId,
+      linked_list_ids: Array.from(new Set([listId, ...linkedListIds])),
+      linked_lists: lists
+        .filter((list) => Array.from(new Set([listId, ...linkedListIds])).includes(list.id))
+        .map((list) => list.name),
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      updated_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    };
+
+    setError(null);
+    setAllTasks((current) => [...current, optimisticTask]);
+
+    try {
+      const created = await createTask(title, listId, linkedListIds);
+      setAllTasks((current) => current.map((task) => (task.id === optimisticId ? created : task)));
+
+      const requestedLinkedListIds = Array.from(new Set([listId, ...linkedListIds]));
+      const returnedLinkedListIds = Array.isArray(created?.linked_list_ids)
+        ? created.linked_list_ids
+        : [created?.list_id ?? listId];
+      const missingLinkedListIds = requestedLinkedListIds.filter((id) => !returnedLinkedListIds.includes(id));
+
+      if (missingLinkedListIds.length > 0 && created?.id) {
+        try {
+          const synced = await updateTaskLinkedLists(created.id, requestedLinkedListIds);
+          setAllTasks((current) => current.map((task) => (task.id === optimisticId ? synced : task)));
+        } catch {
+          setError('Task was created, but some selected tags were not saved. Please restart backend and try again.');
+          await refreshWorkspace(checkedListIds);
+        }
+      }
+    } catch (err) {
+      setAllTasks(previous);
+      setError(err.message);
+      await refreshWorkspace(checkedListIds);
+    }
+  }
+
+  async function handleGlobalAdd({ title, linkedListIds }) {
+    const deduped = Array.from(new Set(linkedListIds));
+    const ownerListId = deduped[0] ?? checkedListIds[0] ?? listOptions[0]?.id;
+    if (!ownerListId) return;
+
+    await handleAdd(ownerListId, title, deduped);
+  }
+
+  async function handleToggle(listId, id, nextStatus) {
+    const previous = allTasks;
+    setError(null);
+    setAllTasks((current) => current.map((task) => (task.id === id ? { ...task, status: nextStatus } : task)));
+
+    try {
+      const updated = await setStatus(id, nextStatus);
+      setAllTasks((current) => current.map((task) => (task.id === id ? updated : task)));
+    } catch (err) {
+      setAllTasks(previous);
+      setError(err.message);
+      await refreshWorkspace(checkedListIds);
+    }
+  }
+
+  async function handleDelete(listId, id) {
+    const previous = allTasks;
+    setError(null);
+    setAllTasks((current) => current.filter((task) => task.id !== id));
+
+    try {
+      await deleteTaskRequest(id);
+    } catch (err) {
+      setAllTasks(previous);
+      setError(err.message);
+      await refreshWorkspace(checkedListIds);
+    }
+  }
+
+  async function handleEditTask(listId, taskId, { title, linkedListIds }) {
+    const previous = allTasks;
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    setError(null);
+    setAllTasks((current) =>
+      current.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              title,
+              linked_list_ids: linkedListIds,
+              linked_lists: lists.filter((list) => linkedListIds.includes(list.id)).map((list) => list.name),
+              updated_at: now,
+            }
+          : task
+      )
+    );
+
+    try {
+      await updateTaskTitle(taskId, title);
+      const updated = await updateTaskLinkedLists(taskId, linkedListIds);
+      setAllTasks((current) => current.map((task) => (task.id === taskId ? updated : task)));
+    } catch (err) {
+      setAllTasks(previous);
+      setError(err.message);
+      await refreshWorkspace(checkedListIds);
+    }
+  }
+
+  function handleCheckedListChange(listId, checked) {
+    const next = checked
+      ? Array.from(new Set([...checkedListIds, listId]))
+      : checkedListIds.filter((id) => id !== listId);
+
+    setCheckedListIds(next);
+  }
+
+  async function handleCreateList() {
+    const name = newListName.trim();
+    if (!name) return;
+
+    setError(null);
+    try {
+      const created = await createList(name);
+      setLists((current) => [...current, created]);
+      setCheckedListIds((current) => Array.from(new Set([...current, created.id])));
+      setNewListName('');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleRenameList(id) {
+    const name = renameValue.trim();
+    if (!name) return;
+
+    setError(null);
+    try {
+      const updated = await renameList(id, name);
+      setLists((current) => current.map((list) => (list.id === id ? updated : list)));
+      setRenamingListId(null);
+      setRenameValue('');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDeleteList(id) {
+    setError(null);
+    try {
+      await removeList(id);
+      const remaining = lists.filter((list) => list.id !== id);
+      setLists(remaining);
+      setCheckedListIds((current) => current.filter((listId) => listId !== id));
+      setAllTasks((current) => current.filter((task) => task.list_id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   return (
-    <div>
-      <h1>Today's Tasks</h1>
-      {error && <p>Error loading tasks: {error}</p>}
-      <ul>
-        {tasks.map((task) => (
-          <li key={task.id}>
-            {task.title} — {task.status}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <main className="app-shell">
+      <aside className="lists-sidebar" aria-label="Task lists">
+        <h2 className="sidebar-title">Lists</h2>
+        <div className="list-create-row">
+          <input
+            className="list-create-input"
+            type="text"
+            placeholder="New list"
+            value={newListName}
+            onChange={(event) => setNewListName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void handleCreateList();
+              }
+            }}
+            aria-label="Create new list"
+          />
+          <button className="list-action-btn" type="button" onClick={() => void handleCreateList()}>
+            Add
+          </button>
+        </div>
+        <ul className="lists-nav">
+          {lists.map((list) => {
+            const isChecked = checkedListIds.includes(list.id);
+            const isRenaming = list.id === renamingListId;
+
+            return (
+              <li key={list.id} className={isChecked ? 'list-item list-item-selected' : 'list-item'}>
+                {isRenaming ? (
+                  <>
+                    <input
+                      className="list-visibility-check"
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(event) => handleCheckedListChange(list.id, event.target.checked)}
+                      aria-label={`Show tasks for ${list.name}`}
+                    />
+                    <input
+                      className="list-rename-input"
+                      value={renameValue}
+                      onChange={(event) => setRenameValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          void handleRenameList(list.id);
+                        }
+                      }}
+                      aria-label={`Rename ${list.name}`}
+                    />
+                    <button className="list-mini-btn" type="button" onClick={() => void handleRenameList(list.id)}>
+                      Save
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      className="list-visibility-check"
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(event) => handleCheckedListChange(list.id, event.target.checked)}
+                      aria-label={`Show tasks for ${list.name}`}
+                    />
+                    <button
+                      className="list-name-btn"
+                      type="button"
+                      onClick={() => handleCheckedListChange(list.id, !isChecked)}
+                    >
+                      {list.name}
+                    </button>
+                    <button
+                      className="list-mini-btn"
+                      type="button"
+                      onClick={() => {
+                        setRenamingListId(list.id);
+                        setRenameValue(list.name);
+                      }}
+                    >
+                      Rename
+                    </button>
+                  </>
+                )}
+                <button className="list-delete-btn" type="button" onClick={() => void handleDeleteList(list.id)}>
+                  🗑
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </aside>
+
+      <section className="tasks-card" aria-label="Tasks for checked lists">
+        <div className="tasks-header-row">
+          <h1 className="tasks-title">Tasks</h1>
+          <AddTaskModal
+            buttonLabel="+ Add Task"
+            dialogTitle="Add task"
+            listOptions={listOptions}
+            initialSelectedListIds={[]}
+            onSubmit={handleGlobalAdd}
+          />
+        </div>
+        {error && <p className="error-banner">{error}</p>}
+
+        {visibleLists.length === 0 && <p className="empty-note">Select one or more list checkboxes to view their tasks.</p>}
+
+        <div className="list-task-grid">
+          {visibleLists.map((list) => {
+            const listTasks = tasksForList(list);
+            const pending = listTasks.filter((task) => task.status === 'pending');
+            const completed = listTasks.filter((task) => task.status === 'done');
+
+            return (
+              <section key={list.id} className="list-task-group" aria-label={`Tasks for ${list.name}`}>
+                <h2 className="list-task-heading">{list.name}</h2>
+                <TaskList
+                  tasks={pending}
+                  onToggle={(id, nextStatus) => handleToggle(list.id, id, nextStatus)}
+                  onDelete={(id) => handleDelete(list.id, id)}
+                  onEdit={(taskId, payload) => handleEditTask(list.id, taskId, payload)}
+                  listOptions={listOptions}
+                />
+                <CompletedSection
+                  tasks={completed}
+                  onToggle={(id, nextStatus) => handleToggle(list.id, id, nextStatus)}
+                  onDelete={(id) => handleDelete(list.id, id)}
+                  onEdit={(taskId, payload) => handleEditTask(list.id, taskId, payload)}
+                  listOptions={listOptions}
+                />
+              </section>
+            );
+          })}
+        </div>
+      </section>
+    </main>
   );
 }
