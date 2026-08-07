@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const { initDb } = require('../db/db.js');
-const { addTask, createList } = require('../mcp-server/tasks.js');
+const { addTask, createList, setTaskStatus } = require('../mcp-server/tasks.js');
 
 function get(server, path) {
   return new Promise((resolve, reject) => {
@@ -330,6 +330,32 @@ test('GET /tasks can filter by listId', async () => {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.length, 1);
   assert.strictEqual(res.body[0].title, 'Dry cleaning');
+
+  server.close();
+  db.close();
+});
+
+test('GET /tasks/completed returns only done tasks across all lists, newest first', async () => {
+  const db = initDb(':memory:');
+  const otherList = createList(db, 'Other list');
+  const pendingTask = addTask(db, 'Still pending');
+  const firstDone = addTask(db, 'First done');
+  const secondDone = addTask(db, 'Second done', otherList.id);
+  setTaskStatus(db, firstDone.id, 'done');
+  setTaskStatus(db, secondDone.id, 'done');
+  db.prepare("UPDATE tasks SET updated_at = datetime('now', '+1 second') WHERE id = ?").run(secondDone.id);
+
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await get(server, '/tasks/completed');
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.length, 2);
+  assert.strictEqual(res.body[0].id, secondDone.id);
+  assert.strictEqual(res.body[1].id, firstDone.id);
+  assert.ok(!res.body.some((task) => task.id === pendingTask.id));
 
   server.close();
   db.close();

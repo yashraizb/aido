@@ -16,6 +16,7 @@ const {
   createTag,
   listAuditLogs,
   restoreAuditLog,
+  listCompletedTasks,
 } = require('../mcp-server/tasks.js');
 
 function parseId(value) {
@@ -160,6 +161,10 @@ function createApp(db) {
     }
 
     return res.json(listTasks(db, listId));
+  });
+
+  app.get('/tasks/completed', (req, res) => {
+    return res.json(listCompletedTasks(db));
   });
 
   app.post('/tasks', (req, res) => {
