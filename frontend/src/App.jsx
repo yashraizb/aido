@@ -16,7 +16,9 @@ export default function App() {
             <p className="empty-note">The Today board is coming soon.</p>
           </section>
         )}
-        {activeSection === 'lists' && <ListsView />}
+        <div style={{ display: activeSection === 'lists' ? undefined : 'none' }}>
+          <ListsView />
+        </div>
         {activeSection === 'completed' && <CompletedView />}
         {activeSection === 'timeline' && (
           <section className="placeholder-panel" aria-label="Timeline">

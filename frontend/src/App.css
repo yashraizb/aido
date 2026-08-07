@@ -565,6 +565,10 @@ body {
     padding: 14px;
   }
 
+  .lists-view-shell {
+    grid-template-columns: 1fr;
+  }
+
   .lists-sidebar,
   .tasks-card {
     border-radius: 12px;
