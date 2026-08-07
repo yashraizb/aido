@@ -81,6 +81,21 @@ export async function getLists() {
   return parseResponse(res);
 }
 
+export async function getUserLists() {
+  const res = await fetch(`${LISTS_URL}?kind=user`);
+  return parseResponse(res);
+}
+
+export async function getSystemLists() {
+  const res = await fetch(`${LISTS_URL}?kind=system`);
+  return parseResponse(res);
+}
+
+export async function getCompletedTasks() {
+  const res = await fetch(`${API_BASE}/tasks/completed`);
+  return parseResponse(res);
+}
+
 export async function createList(name) {
   const res = await fetch(LISTS_URL, {
     method: 'POST',
