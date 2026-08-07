@@ -212,7 +212,7 @@ function listTodayTasks(db) {
 
 function listCompletedTasks(db) {
   const tasks = db
-    .prepare("SELECT * FROM tasks WHERE status = 'done' ORDER BY updated_at DESC, id DESC")
+    .prepare("SELECT * FROM tasks WHERE status = 'done' ORDER BY updated_at DESC")
     .all();
 
   return hydrateTasks(db, tasks);

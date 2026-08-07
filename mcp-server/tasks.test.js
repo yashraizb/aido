@@ -276,6 +276,7 @@ test('listCompletedTasks returns all done tasks across lists, newest updated_at 
   const taskB = addTask(db, 'Second done', otherList.id);
   setTaskStatus(db, taskA.id, 'done');
   setTaskStatus(db, taskB.id, 'done');
+  db.prepare("UPDATE tasks SET updated_at = datetime('now', '+1 second') WHERE id = ?").run(taskB.id);
 
   const results = listCompletedTasks(db);
   const ids = results.map((t) => t.id);
