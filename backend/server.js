@@ -51,8 +51,14 @@ function createApp(db) {
   app.use(express.json());
 
   app.get('/lists', (req, res) => {
+    const { kind } = req.query;
+    if (kind !== undefined && kind !== 'user' && kind !== 'system') {
+      return res.status(400).json({ error: "kind must be 'user' or 'system'" });
+    }
+
     const lists = listLists(db);
-    return res.json(lists);
+    const filtered = kind === undefined ? lists : lists.filter((list) => list.kind === kind);
+    return res.json(filtered);
   });
 
   app.get('/tags', (req, res) => {

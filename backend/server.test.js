@@ -499,3 +499,48 @@ test('DELETE /lists/:id rejects deleting the last list', async () => {
   server.close();
   db.close();
 });
+
+test('GET /lists returns all lists when no kind filter is given', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await get(server, '/lists');
+
+  assert.strictEqual(res.status, 200);
+  assert.ok(res.body.some((list) => list.kind === 'system'));
+  assert.ok(res.body.some((list) => list.kind === 'user'));
+
+  server.close();
+  db.close();
+});
+
+test('GET /lists?kind=user excludes the system Today list', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await get(server, '/lists?kind=user');
+
+  assert.strictEqual(res.status, 200);
+  assert.ok(res.body.every((list) => list.kind === 'user'));
+
+  server.close();
+  db.close();
+});
+
+test('GET /lists?kind=invalid returns 400', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await get(server, '/lists?kind=invalid');
+
+  assert.strictEqual(res.status, 400);
+
+  server.close();
+  db.close();
+});
