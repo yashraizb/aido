@@ -49,14 +49,14 @@ server.tool(
   'add_task',
   {
     title: z.string().describe('Title of the task to add'),
-    listId: z.number().int().positive().optional().describe('Optional list ID, defaults to 1'),
+    listId: z.number().int().positive().optional().describe('Optional list ID, defaults to the Inbox list if omitted'),
     linkedListIds: z.array(z.number().int().positive()).optional().describe('Optional linked list IDs for cross-list visibility'),
     tags: z.array(z.string()).optional().describe('Optional tag names'),
   },
   async ({ title, listId, linkedListIds, tags }) => {
     const normalizedTags = normalizeTagNames(tags ?? []);
     const normalizedLinkedListIds = normalizeListIds(linkedListIds ?? []);
-    const task = addTask(db, title, listId ?? 1, normalizedTags, normalizedLinkedListIds);
+    const task = addTask(db, title, listId ?? null, normalizedTags, normalizedLinkedListIds);
     return { content: [{ type: 'text', text: JSON.stringify(task) }] };
   }
 );
@@ -86,7 +86,7 @@ server.tool(
   'update_task_status',
   {
     id: z.number().int().positive().describe('ID of the task to update'),
-    status: z.enum(['pending', 'done']).describe('New task status'),
+    status: z.enum(['pending', 'in_progress', 'done']).describe('New task status'),
   },
   async ({ id, status }) => {
     const task = setTaskStatus(db, id, status);

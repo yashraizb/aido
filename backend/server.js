@@ -187,8 +187,8 @@ function createApp(db) {
 
   app.patch('/tasks/:id', (req, res) => {
     const { status } = req.body ?? {};
-    if (status !== 'pending' && status !== 'done') {
-      return res.status(400).json({ error: "status must be either 'pending' or 'done'" });
+    if (status !== 'pending' && status !== 'in_progress' && status !== 'done') {
+      return res.status(400).json({ error: "status must be 'pending', 'in_progress', or 'done'" });
     }
 
     const task = setTaskStatus(db, Number(req.params.id), status);

@@ -172,6 +172,22 @@ test('PATCH /tasks/:id returns 400 for invalid status', async () => {
   db.close();
 });
 
+test('PATCH /tasks/:id accepts in_progress as a valid status', async () => {
+  const db = initDb(':memory:');
+  const created = addTask(db, 'Walk dog', 1);
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await request(server, 'PATCH', `/tasks/${created.id}`, { status: 'in_progress' });
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.status, 'in_progress');
+
+  server.close();
+  db.close();
+});
+
 test('PATCH /tasks/:id returns 404 when task does not exist', async () => {
   const db = initDb(':memory:');
   const { createApp } = require('./server.js');
@@ -251,14 +267,14 @@ test('PATCH /tasks/:id/tags validates input', async () => {
 test('PATCH /tasks/:id/linked-lists updates list associations', async () => {
   const db = initDb(':memory:');
   const work = createList(db, 'Work');
-  const today = createList(db, 'Today');
-  const created = addTask(db, 'Walk dog', today.id);
+  const todayRow = db.prepare("SELECT * FROM lists WHERE name = 'Today'").get();
+  const created = addTask(db, 'Walk dog', todayRow.id);
   const { createApp } = require('./server.js');
   const app = createApp(db);
   const server = app.listen(0);
 
   const res = await request(server, 'PATCH', `/tasks/${created.id}/linked-lists`, {
-    linkedListIds: [work.id, today.id],
+    linkedListIds: [work.id, todayRow.id],
   });
 
   assert.strictEqual(res.status, 200);
@@ -328,8 +344,9 @@ test('GET /lists returns default list', async () => {
   const res = await get(server, '/lists');
 
   assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.body.length, 1);
-  assert.strictEqual(res.body[0].name, 'My Tasks');
+  assert.strictEqual(res.body.length, 3);
+  const myTasks = res.body.find((l) => l.name === 'My Tasks');
+  assert.ok(myTasks);
 
   server.close();
   db.close();
@@ -465,7 +482,17 @@ test('DELETE /lists/:id rejects deleting the last list', async () => {
   const app = createApp(db);
   const server = app.listen(0);
 
-  const res = await request(server, 'DELETE', '/lists/1');
+  const lists = await get(server, '/lists');
+  const allListIds = lists.body.map((l) => l.id).sort((a, b) => a - b);
+
+  // Delete all lists except the last one
+  for (const id of allListIds.slice(0, -1)) {
+    await request(server, 'DELETE', `/lists/${id}`);
+  }
+
+  // Try to delete the last list, which should fail
+  const lastListId = allListIds[allListIds.length - 1];
+  const res = await request(server, 'DELETE', `/lists/${lastListId}`);
 
   assert.strictEqual(res.status, 400);
 

@@ -6,7 +6,7 @@ test('addTask inserts a pending task and returns it', () => {
   const db = initDb(':memory:');
   const { addTask } = require('./tasks.js');
 
-  const task = addTask(db, 'Buy milk');
+  const task = addTask(db, 'Buy milk', 1);
 
   assert.strictEqual(task.title, 'Buy milk');
   assert.strictEqual(task.status, 'pending');
@@ -113,8 +113,9 @@ test('list CRUD supports create, update, and delete', () => {
   const { listLists, createList, updateList, deleteList, addTask, listTasks } = require('./tasks.js');
 
   const before = listLists(db);
-  assert.strictEqual(before.length, 1);
-  assert.strictEqual(before[0].name, 'My Tasks');
+  assert.strictEqual(before.length, 3);
+  const myTasks = before.find((l) => l.name === 'My Tasks');
+  assert.ok(myTasks);
 
   const created = createList(db, 'Errands');
   assert.strictEqual(created.name, 'Errands');
@@ -144,9 +145,9 @@ test('setTaskTags replaces tags on a task', () => {
 
 test('setTaskLinkedLists updates cross-list visibility associations', () => {
   const db = initDb(':memory:');
-  const { addTask, createList, setTaskLinkedLists } = require('./tasks.js');
+  const { addTask, listLists, createList, setTaskLinkedLists } = require('./tasks.js');
 
-  const today = createList(db, 'Today');
+  const today = listLists(db).find((l) => l.name === 'Today');
   const work = createList(db, 'Work');
   const created = addTask(db, 'Plan sprint', today.id, [], [work.id]);
   const updated = setTaskLinkedLists(db, created.id, [today.id, work.id]);
@@ -184,5 +185,27 @@ test('tag CRUD supports list and create', () => {
   assert.strictEqual(tags.length, 2);
   assert.strictEqual(tags[0].name, 'personal');
   assert.strictEqual(tags[1].name, 'work');
+  db.close();
+});
+
+test('addTask with no listId defaults to the Inbox list, not a hardcoded id', () => {
+  const db = initDb(':memory:');
+  const { addTask } = require('./tasks.js');
+
+  const task = addTask(db, 'Unsorted task');
+  const inbox = db.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+
+  assert.strictEqual(task.list_id, inbox.id);
+  db.close();
+});
+
+test('setTaskStatus accepts in_progress and round-trips it', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskStatus } = require('./tasks.js');
+
+  const created = addTask(db, 'Working on it');
+  const updated = setTaskStatus(db, created.id, 'in_progress');
+
+  assert.strictEqual(updated.status, 'in_progress');
   db.close();
 });

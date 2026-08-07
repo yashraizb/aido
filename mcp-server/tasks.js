@@ -139,6 +139,13 @@ function readTask(db, id) {
   return hydrateTasks(db, [task])[0];
 }
 
+function resolveDefaultListId(db) {
+  const inbox = db.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+  if (inbox) return inbox.id;
+  const anyUserList = db.prepare("SELECT id FROM lists WHERE kind = 'user' ORDER BY id ASC LIMIT 1").get();
+  return anyUserList ? anyUserList.id : 1;
+}
+
 function deriveLinkedListIdsFromTagNames(db, tagNames) {
   const names = normalizeTagNames(tagNames);
   if (names.length === 0) return [];
@@ -147,11 +154,13 @@ function deriveLinkedListIdsFromTagNames(db, tagNames) {
   return rows.map((row) => row.id);
 }
 
-function addTask(db, title, listId = 1, tagNames = [], linkedListIds = []) {
+function addTask(db, title, listId = null, tagNames = [], linkedListIds = []) {
+  const resolvedListId = listId ?? resolveDefaultListId(db);
+
   const stmt = db.prepare(
     'INSERT INTO tasks (title, status, list_id, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
   );
-  const info = stmt.run(title, 'pending', listId);
+  const info = stmt.run(title, 'pending', resolvedListId);
   const taskId = info.lastInsertRowid;
 
   const tags = ensureTags(db, tagNames);
@@ -162,14 +171,14 @@ function addTask(db, title, listId = 1, tagNames = [], linkedListIds = []) {
   );
 
   const derivedListIds = deriveLinkedListIdsFromTagNames(db, tagNames);
-  setTaskListLinkIds(db, taskId, [...linkedListIds, ...derivedListIds], listId);
+  setTaskListLinkIds(db, taskId, [...linkedListIds, ...derivedListIds], resolvedListId);
 
   const task = readTask(db, taskId);
   recordAudit(db, {
     action: 'create_task',
     entityType: 'task',
     entityId: taskId,
-    details: { title, listId, tagNames, linkedListIds: task.linked_list_ids },
+    details: { title, listId: resolvedListId, tagNames, linkedListIds: task.linked_list_ids },
   });
   return task;
 }
