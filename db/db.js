@@ -7,6 +7,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS lists (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
+  kind TEXT NOT NULL DEFAULT 'user',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -69,6 +70,10 @@ function runMigrations(db) {
     db.exec('ALTER TABLE tasks ADD COLUMN updated_at DATETIME');
   }
 
+  if (!hasColumn(db, 'lists', 'kind')) {
+    db.exec("ALTER TABLE lists ADD COLUMN kind TEXT NOT NULL DEFAULT 'user'");
+  }
+
   db.exec("INSERT OR IGNORE INTO lists (id, name) VALUES (1, 'My Tasks')");
   db.exec('UPDATE tasks SET list_id = 1 WHERE list_id IS NULL');
   db.exec('UPDATE tasks SET updated_at = created_at WHERE updated_at IS NULL');
@@ -80,6 +85,21 @@ function runMigrations(db) {
     JOIN tags t ON t.id = tt.tag_id
     JOIN lists l ON l.name = t.name
   `);
+
+  const existingSystemList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  if (!existingSystemList) {
+    const existingTodayNamed = db.prepare("SELECT id FROM lists WHERE name = 'Today'").get();
+    if (existingTodayNamed) {
+      db.prepare("UPDATE lists SET kind = 'system' WHERE id = ?").run(existingTodayNamed.id);
+    } else {
+      db.prepare("INSERT INTO lists (name, kind) VALUES ('Today', 'system')").run();
+    }
+  }
+
+  const existingInbox = db.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+  if (!existingInbox) {
+    db.prepare("INSERT INTO lists (name, kind) VALUES ('Inbox', 'user')").run();
+  }
 }
 
 function initDb(dbPath = DB_PATH) {
