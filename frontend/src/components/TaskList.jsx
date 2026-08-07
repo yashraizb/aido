@@ -1,6 +1,6 @@
 import TaskRow from './TaskRow.jsx';
 
-export default function TaskList({ tasks, onToggle, onDelete, onEdit, listOptions }) {
+export default function TaskList({ tasks, onToggle, onDelete, onEdit, listOptions, onPullToToday }) {
   if (tasks.length === 0) {
     return null;
   }
@@ -15,6 +15,7 @@ export default function TaskList({ tasks, onToggle, onDelete, onEdit, listOption
           onDelete={onDelete}
           onEdit={onEdit}
           listOptions={listOptions}
+          onPullToToday={onPullToToday}
         />
       ))}
     </ul>

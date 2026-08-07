@@ -1,23 +1,7 @@
 import AddTaskModal from './AddTaskModal.jsx';
+import { formatTimestamp } from '../formatTimestamp.js';
 
-function formatTimestamp(value) {
-  if (!value) return 'Unknown';
-  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return value;
-
-  const utcMs = date.getTime();
-  const istOffsetMs = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(utcMs + istOffsetMs);
-
-  return istDate.toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
-
-export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions }) {
+export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions, onPullToToday }) {
   const isDone = task.status === 'done';
   const nextStatus = isDone ? 'pending' : 'done';
   const updatedLabel = formatTimestamp(task.updated_at);
@@ -61,6 +45,18 @@ export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions 
         submitLabel="Save changes"
         onSubmit={({ title, linkedListIds: nextLinkedListIds }) => onEdit(task.id, { title, linkedListIds: nextLinkedListIds })}
       />
+      {onPullToToday && (
+        <button
+          className="task-pull-today-btn"
+          type="button"
+          onClick={() => {
+            void onPullToToday(task.id);
+          }}
+          aria-label={`Pull ${task.title} into Today`}
+        >
+          → Today
+        </button>
+      )}
       <button
         className="task-delete"
         type="button"

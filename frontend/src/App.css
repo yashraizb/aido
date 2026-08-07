@@ -434,6 +434,21 @@ body {
   background: #eef2f7;
 }
 
+.task-pull-today-btn {
+  border: 1px solid #d2e3fc;
+  background: transparent;
+  color: #174ea6;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.task-pull-today-btn:hover {
+  background: #e8f0fe;
+}
+
 .task-delete {
   border: 0;
   background: transparent;
