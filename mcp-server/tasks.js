@@ -279,6 +279,12 @@ function createList(db, name) {
 }
 
 function updateList(db, id, name) {
+  const existing = db.prepare('SELECT * FROM lists WHERE id = ?').get(id);
+  if (!existing) return null;
+  if (existing.kind === 'system') {
+    return { rejected: true, reason: 'system list cannot be renamed' };
+  }
+
   const info = db.prepare('UPDATE lists SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(name, id);
   if (info.changes === 0) return null;
   const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(id);
@@ -288,6 +294,10 @@ function updateList(db, id, name) {
 
 function deleteList(db, id) {
   const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(id);
+  if (list && list.kind === 'system') {
+    return { removedList: false, removedTasks: 0, reason: 'system list cannot be deleted' };
+  }
+
   const tx = db.transaction((listId) => {
     const removedTasks = db.prepare('DELETE FROM tasks WHERE list_id = ?').run(listId);
     const removedList = db.prepare('DELETE FROM lists WHERE id = ?').run(listId);
@@ -342,13 +352,13 @@ function restoreAuditLog(db, auditId) {
     db.prepare('DELETE FROM tags').run();
     db.prepare('DELETE FROM lists').run();
 
-    const insertList = db.prepare('INSERT INTO lists (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)');
+    const insertList = db.prepare('INSERT INTO lists (id, name, kind, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
     const insertTask = db.prepare('INSERT INTO tasks (id, title, status, list_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)');
     const insertTag = db.prepare('INSERT INTO tags (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)');
     const insertTaskTag = db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)');
     const insertTaskListLink = db.prepare('INSERT INTO task_list_links (task_id, list_id) VALUES (?, ?)');
 
-    for (const row of snapshot.lists) insertList.run(row.id, row.name, row.created_at, row.updated_at);
+    for (const row of snapshot.lists) insertList.run(row.id, row.name, row.kind ?? 'user', row.created_at, row.updated_at);
     for (const row of snapshot.tasks) {
       insertTask.run(row.id, row.title, row.status, row.list_id, row.created_at, row.updated_at);
     }

@@ -483,18 +483,94 @@ test('DELETE /lists/:id rejects deleting the last list', async () => {
   const server = app.listen(0);
 
   const lists = await get(server, '/lists');
-  const allListIds = lists.body.map((l) => l.id).sort((a, b) => a - b);
+  // The system Today list is never deletable (see dedicated test below), so drive this
+  // scenario down to "only user lists remain" without ever targeting it.
+  const userListIds = lists.body
+    .filter((l) => l.kind === 'user')
+    .map((l) => l.id)
+    .sort((a, b) => a - b);
 
-  // Delete all lists except the last one
-  for (const id of allListIds.slice(0, -1)) {
+  // Delete all user lists except the last one.
+  for (const id of userListIds.slice(0, -1)) {
     await request(server, 'DELETE', `/lists/${id}`);
   }
 
-  // Try to delete the last list, which should fail
-  const lastListId = allListIds[allListIds.length - 1];
-  const res = await request(server, 'DELETE', `/lists/${lastListId}`);
+  // Delete the last remaining user list too, leaving only the system list.
+  const lastUserListId = userListIds[userListIds.length - 1];
+  await request(server, 'DELETE', `/lists/${lastUserListId}`);
+
+  const remaining = await get(server, '/lists');
+  assert.strictEqual(remaining.body.length, 1);
+
+  // Now only one list remains (the system list) — deleting it should fail because it is
+  // the last remaining list at all, before the system-list check even matters.
+  const res = await request(server, 'DELETE', `/lists/${remaining.body[0].id}`);
 
   assert.strictEqual(res.status, 400);
+
+  server.close();
+  db.close();
+});
+
+test('DELETE /lists/:id rejects deleting the reserved system list even when other lists exist', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const lists = await get(server, '/lists');
+  const todayList = lists.body.find((l) => l.kind === 'system');
+
+  const res = await request(server, 'DELETE', `/lists/${todayList.id}`);
+
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body.error, /reserved/i);
+
+  const afterLists = await get(server, '/lists');
+  assert.ok(afterLists.body.some((l) => l.id === todayList.id));
+
+  server.close();
+  db.close();
+});
+
+test('PATCH /lists/:id rejects renaming the reserved system list', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const lists = await get(server, '/lists');
+  const todayList = lists.body.find((l) => l.kind === 'system');
+
+  const res = await request(server, 'PATCH', `/lists/${todayList.id}`, { name: 'Renamed Today' });
+
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body.error, /reserved/i);
+
+  const afterLists = await get(server, '/lists');
+  const stillToday = afterLists.body.find((l) => l.id === todayList.id);
+  assert.strictEqual(stillToday.name, 'Today');
+
+  server.close();
+  db.close();
+});
+
+test('POST /tasks rejects assigning a task directly to the reserved system list', async () => {
+  const db = initDb(':memory:');
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const lists = await get(server, '/lists');
+  const todayList = lists.body.find((l) => l.kind === 'system');
+
+  const res = await request(server, 'POST', '/tasks', { title: 'Sneaky task', listId: todayList.id });
+
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body.error, /reserved/i);
+
+  const tasksRes = await get(server, `/tasks?listId=${todayList.id}`);
+  assert.strictEqual(tasksRes.body.length, 0);
 
   server.close();
   db.close();

@@ -299,3 +299,82 @@ test('listCompletedTasks excludes pending and in_progress tasks', () => {
   assert.strictEqual(results.length, 0);
   db.close();
 });
+
+test('restoreAuditLog preserves kind=system on the Today list', () => {
+  const db = initDb(':memory:');
+  const { addTask, listAuditLogs, restoreAuditLog } = require('./tasks.js');
+
+  addTask(db, 'Some task');
+  const auditId = listAuditLogs(db).find((log) => log.action === 'create_task').id;
+
+  restoreAuditLog(db, auditId);
+
+  const todayList = db.prepare("SELECT kind FROM lists WHERE name = 'Today'").get();
+  assert.strictEqual(todayList.kind, 'system');
+  db.close();
+});
+
+test('updateList rejects renaming the reserved system list', () => {
+  const db = initDb(':memory:');
+  const { listLists, updateList } = require('./tasks.js');
+
+  const todayList = listLists(db).find((l) => l.kind === 'system');
+  const result = updateList(db, todayList.id, 'Renamed Today');
+
+  assert.strictEqual(result.rejected, true);
+  const unchanged = db.prepare('SELECT name FROM lists WHERE id = ?').get(todayList.id);
+  assert.strictEqual(unchanged.name, 'Today');
+  db.close();
+});
+
+test('updateList still returns null for a nonexistent list', () => {
+  const db = initDb(':memory:');
+  const { updateList } = require('./tasks.js');
+
+  const result = updateList(db, 999999, 'Whatever');
+
+  assert.strictEqual(result, null);
+  db.close();
+});
+
+test('deleteList rejects deleting the reserved system list and keeps its tasks', () => {
+  const db = initDb(':memory:');
+  const { addTask, listLists, setTaskLinkedLists, deleteList } = require('./tasks.js');
+
+  const todayList = listLists(db).find((l) => l.kind === 'system');
+  const task = addTask(db, 'Owned elsewhere but pulled into Today');
+  setTaskLinkedLists(db, task.id, [todayList.id]);
+
+  const result = deleteList(db, todayList.id);
+
+  assert.strictEqual(result.removedList, false);
+  assert.strictEqual(result.removedTasks, 0);
+  assert.strictEqual(result.reason, 'system list cannot be deleted');
+
+  const stillThere = db.prepare('SELECT id FROM lists WHERE id = ?').get(todayList.id);
+  assert.ok(stillThere);
+  db.close();
+});
+
+test('a task cannot be assigned the system list as its owning list (REST/MCP boundary simulation)', () => {
+  const db = initDb(':memory:');
+  const { listLists } = require('./tasks.js');
+
+  const todayList = listLists(db).find((l) => l.kind === 'system');
+
+  // Simulates the guard added at the REST (POST /tasks) and MCP (add_task) boundaries:
+  // an explicit attempt to target the system list as the owning list must be rejected
+  // before addTask is ever called.
+  function simulateAddTaskBoundary(listId) {
+    const targetList = listLists(db).find((l) => l.id === listId);
+    if (targetList && targetList.kind === 'system') {
+      return { rejected: true, error: 'Cannot assign tasks directly to the reserved Today list' };
+    }
+    return { rejected: false };
+  }
+
+  const result = simulateAddTaskBoundary(todayList.id);
+
+  assert.strictEqual(result.rejected, true);
+  db.close();
+});

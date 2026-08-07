@@ -119,6 +119,9 @@ function createApp(db) {
       if (!list) {
         return res.status(404).json({ error: `No list with id ${id}` });
       }
+      if (list.rejected) {
+        return res.status(400).json({ error: 'Cannot rename the reserved Today list' });
+      }
       return res.json(list);
     } catch (err) {
       if (isUniqueConstraintError(err)) {
@@ -141,6 +144,9 @@ function createApp(db) {
 
     const result = deleteList(db, id);
     if (!result.removedList) {
+      if (result.reason === 'system list cannot be deleted') {
+        return res.status(400).json({ error: 'Cannot delete the reserved Today list' });
+      }
       return res.status(404).json({ error: `No list with id ${id}` });
     }
 
@@ -167,9 +173,13 @@ function createApp(db) {
       return res.status(400).json({ error: 'listId must be a positive integer' });
     }
 
-    const listExists = listLists(db).some((list) => list.id === parsedListId);
-    if (!listExists) {
+    const allLists = listLists(db);
+    const targetList = allLists.find((list) => list.id === parsedListId);
+    if (!targetList) {
       return res.status(404).json({ error: `No list with id ${parsedListId}` });
+    }
+    if (targetList.kind === 'system') {
+      return res.status(400).json({ error: 'Cannot assign tasks directly to the reserved Today list' });
     }
 
     const normalizedTags = tags === undefined ? [] : normalizeTagNames(tags);

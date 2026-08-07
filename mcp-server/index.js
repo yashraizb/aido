@@ -54,6 +54,16 @@ server.tool(
     tags: z.array(z.string()).optional().describe('Optional tag names'),
   },
   async ({ title, listId, linkedListIds, tags }) => {
+    if (listId !== undefined && listId !== null) {
+      const targetList = listLists(db).find((list) => list.id === listId);
+      if (targetList && targetList.kind === 'system') {
+        return {
+          content: [{ type: 'text', text: 'Cannot assign tasks directly to the reserved Today list' }],
+          isError: true,
+        };
+      }
+    }
+
     const normalizedTags = normalizeTagNames(tags ?? []);
     const normalizedLinkedListIds = normalizeListIds(linkedListIds ?? []);
     const task = addTask(db, title, listId ?? null, normalizedTags, normalizedLinkedListIds);
@@ -248,6 +258,9 @@ server.tool(
     if (!list) {
       return { content: [{ type: 'text', text: `No list with id ${id}` }], isError: true };
     }
+    if (list.rejected) {
+      return { content: [{ type: 'text', text: 'Cannot rename the reserved Today list' }], isError: true };
+    }
     return { content: [{ type: 'text', text: JSON.stringify(list) }] };
   }
 );
@@ -263,6 +276,12 @@ server.tool(
 
     const result = deleteList(db, id);
     if (!result.removedList) {
+      if (result.reason === 'system list cannot be deleted') {
+        return {
+          content: [{ type: 'text', text: 'Cannot delete the reserved Today list' }],
+          isError: true,
+        };
+      }
       return { content: [{ type: 'text', text: `No list with id ${id}` }], isError: true };
     }
     return { content: [{ type: 'text', text: `Deleted list ${id} and ${result.removedTasks} task(s)` }] };
