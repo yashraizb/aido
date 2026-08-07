@@ -209,3 +209,92 @@ test('setTaskStatus accepts in_progress and round-trips it', () => {
   assert.strictEqual(updated.status, 'in_progress');
   db.close();
 });
+
+test('listTodayTasks includes pending/in_progress tasks linked to Today regardless of date', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskStatus, setTaskLinkedLists, listTodayTasks } = require('./tasks.js');
+
+  const todayList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  const task = addTask(db, 'In progress today task');
+  setTaskLinkedLists(db, task.id, [todayList.id]);
+  setTaskStatus(db, task.id, 'in_progress');
+
+  const results = listTodayTasks(db);
+
+  assert.ok(results.some((t) => t.id === task.id));
+  db.close();
+});
+
+test('listTodayTasks excludes a done task whose updated_at is not today', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskLinkedLists, listTodayTasks } = require('./tasks.js');
+
+  const todayList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  const task = addTask(db, 'Completed yesterday');
+  setTaskLinkedLists(db, task.id, [todayList.id]);
+  db.prepare("UPDATE tasks SET status = 'done', updated_at = datetime('now', '-2 day') WHERE id = ?").run(task.id);
+
+  const results = listTodayTasks(db);
+
+  assert.ok(!results.some((t) => t.id === task.id));
+  db.close();
+});
+
+test('listTodayTasks includes a done task whose updated_at is today', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskLinkedLists, setTaskStatus, listTodayTasks } = require('./tasks.js');
+
+  const todayList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  const task = addTask(db, 'Completed today');
+  setTaskLinkedLists(db, task.id, [todayList.id]);
+  setTaskStatus(db, task.id, 'done');
+
+  const results = listTodayTasks(db);
+
+  assert.ok(results.some((t) => t.id === task.id));
+  db.close();
+});
+
+test('listTodayTasks excludes tasks not linked to the Today list', () => {
+  const db = initDb(':memory:');
+  const { addTask, listTodayTasks } = require('./tasks.js');
+
+  const task = addTask(db, 'Not on the board');
+
+  const results = listTodayTasks(db);
+
+  assert.ok(!results.some((t) => t.id === task.id));
+  db.close();
+});
+
+test('listCompletedTasks returns all done tasks across lists, newest updated_at first', () => {
+  const db = initDb(':memory:');
+  const { addTask, createList, setTaskStatus, listCompletedTasks } = require('./tasks.js');
+
+  const otherList = createList(db, 'Other list');
+  const taskA = addTask(db, 'First done');
+  const taskB = addTask(db, 'Second done', otherList.id);
+  setTaskStatus(db, taskA.id, 'done');
+  setTaskStatus(db, taskB.id, 'done');
+
+  const results = listCompletedTasks(db);
+  const ids = results.map((t) => t.id);
+
+  assert.ok(ids.indexOf(taskB.id) < ids.indexOf(taskA.id), 'expected the more recently completed task first');
+  assert.ok(results.every((t) => t.status === 'done'));
+  db.close();
+});
+
+test('listCompletedTasks excludes pending and in_progress tasks', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskStatus, listCompletedTasks } = require('./tasks.js');
+
+  addTask(db, 'Still pending');
+  const inProgress = addTask(db, 'Still working');
+  setTaskStatus(db, inProgress.id, 'in_progress');
+
+  const results = listCompletedTasks(db);
+
+  assert.strictEqual(results.length, 0);
+  db.close();
+});

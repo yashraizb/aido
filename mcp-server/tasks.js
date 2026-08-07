@@ -193,6 +193,31 @@ function listTasks(db, listId = null) {
   return hydrateTasks(db, tasks);
 }
 
+function listTodayTasks(db) {
+  const todayList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  if (!todayList) return [];
+
+  const tasks = db
+    .prepare(
+      `SELECT t.* FROM tasks t
+       JOIN task_list_links tll ON tll.task_id = t.id
+       WHERE tll.list_id = ?
+         AND (t.status != 'done' OR date(t.updated_at) = date('now'))
+       ORDER BY t.id ASC`
+    )
+    .all(todayList.id);
+
+  return hydrateTasks(db, tasks);
+}
+
+function listCompletedTasks(db) {
+  const tasks = db
+    .prepare("SELECT * FROM tasks WHERE status = 'done' ORDER BY updated_at DESC, id DESC")
+    .all();
+
+  return hydrateTasks(db, tasks);
+}
+
 function setTaskStatus(db, id, status) {
   const info = db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, id);
   if (info.changes === 0) return null;
@@ -359,4 +384,6 @@ module.exports = {
   createTag,
   listAuditLogs,
   restoreAuditLog,
+  listTodayTasks,
+  listCompletedTasks,
 };
