@@ -1,5 +1,6 @@
 function describeCreateTask(entry) {
-  return `Created task "${entry.details.title}"`;
+  const title = entry.details && entry.details.title;
+  return title ? `Created task "${title}"` : `Created task #${entry.entity_id}`;
 }
 
 function describeSetTaskStatus(entry) {
@@ -7,7 +8,8 @@ function describeSetTaskStatus(entry) {
 }
 
 function describeSetTaskTitle(entry) {
-  return `Renamed task #${entry.entity_id} to "${entry.details.title}"`;
+  const title = entry.details && entry.details.title;
+  return title ? `Renamed task #${entry.entity_id} to "${title}"` : `Renamed task #${entry.entity_id}`;
 }
 
 function describeDeleteTask(entry) {
@@ -27,11 +29,13 @@ function describeSetTaskLinkedLists(entry) {
 }
 
 function describeCreateList(entry) {
-  return `Created list "${entry.details.name}"`;
+  const name = entry.details && entry.details.name;
+  return name ? `Created list "${name}"` : `Created list #${entry.entity_id}`;
 }
 
 function describeUpdateList(entry) {
-  return `Renamed list #${entry.entity_id} to "${entry.details.name}"`;
+  const name = entry.details && entry.details.name;
+  return name ? `Renamed list #${entry.entity_id} to "${name}"` : `Renamed list #${entry.entity_id}`;
 }
 
 function describeDeleteList(entry) {
@@ -42,11 +46,15 @@ function describeDeleteList(entry) {
 }
 
 function describeCreateTag(entry) {
-  return `Created tag "${entry.details.name}"`;
+  const name = entry.details && entry.details.name;
+  return name ? `Created tag "${name}"` : `Created tag #${entry.entity_id}`;
 }
 
 function describeRestoreAuditLog(entry) {
-  return `Restored to a previous state (from entry #${entry.details.restoredFromAuditId})`;
+  const restoredFromAuditId = entry.details && entry.details.restoredFromAuditId;
+  return restoredFromAuditId
+    ? `Restored to a previous state (from entry #${restoredFromAuditId})`
+    : `Restored to a previous state (${entry.action})`;
 }
 
 const DESCRIBERS = {
