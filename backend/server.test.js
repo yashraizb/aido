@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const { initDb } = require('../db/db.js');
-const { addTask, createList, setTaskStatus } = require('../mcp-server/tasks.js');
+const { addTask, createList, setTaskStatus, setTaskLinkedLists } = require('../mcp-server/tasks.js');
 
 function get(server, path) {
   return new Promise((resolve, reject) => {
@@ -356,6 +356,35 @@ test('GET /tasks/completed returns only done tasks across all lists, newest firs
   assert.strictEqual(res.body[0].id, secondDone.id);
   assert.strictEqual(res.body[1].id, firstDone.id);
   assert.ok(!res.body.some((task) => task.id === pendingTask.id));
+
+  server.close();
+  db.close();
+});
+
+test('GET /tasks/today returns tasks linked to the system Today list, filtered by the same rules as listTodayTasks', async () => {
+  const db = initDb(':memory:');
+  const todayList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+
+  const pendingOnToday = addTask(db, 'Pending on Today');
+  setTaskLinkedLists(db, pendingOnToday.id, [todayList.id]);
+
+  const doneYesterday = addTask(db, 'Done yesterday, still on Today');
+  setTaskLinkedLists(db, doneYesterday.id, [todayList.id]);
+  db.prepare("UPDATE tasks SET status = 'done', updated_at = datetime('now', '-2 day') WHERE id = ?").run(doneYesterday.id);
+
+  const notOnToday = addTask(db, 'Not on Today at all');
+
+  const { createApp } = require('./server.js');
+  const app = createApp(db);
+  const server = app.listen(0);
+
+  const res = await get(server, '/tasks/today');
+
+  assert.strictEqual(res.status, 200);
+  const ids = res.body.map((t) => t.id);
+  assert.ok(ids.includes(pendingOnToday.id));
+  assert.ok(!ids.includes(doneYesterday.id));
+  assert.ok(!ids.includes(notOnToday.id));
 
   server.close();
   db.close();
