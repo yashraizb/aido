@@ -58,6 +58,30 @@ test('initDb ensures a system Today list and a user Inbox list exist', () => {
   fs.unlinkSync(tmpPath);
 });
 
+test('initDb reassigns tasks owned by the system list to Inbox, preserving their Today link', () => {
+  const { initDb } = require('./db.js');
+  const tmpPath = path.join(os.tmpdir(), `aido-test-${Date.now()}-legacy.db`);
+  const db1 = initDb(tmpPath);
+  const systemList = db1.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  const info = db1
+    .prepare("INSERT INTO tasks (title, status, list_id) VALUES (?, 'pending', ?)")
+    .run('Legacy task owned by Today', systemList.id);
+  const taskId = info.lastInsertRowid;
+  db1.close();
+
+  const db2 = initDb(tmpPath);
+  const task = db2.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+  const inboxList = db2.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+
+  assert.strictEqual(task.list_id, inboxList.id, 'expected the task to be reassigned to Inbox');
+
+  const link = db2.prepare('SELECT * FROM task_list_links WHERE task_id = ? AND list_id = ?').get(taskId, systemList.id);
+  assert.ok(link, 'expected the task to retain a task_list_links row to the system Today list');
+
+  db2.close();
+  fs.unlinkSync(tmpPath);
+});
+
 test('initDb migration is idempotent: exactly one system list after two initDb calls', () => {
   const { initDb } = require('./db.js');
   const tmpPath = path.join(os.tmpdir(), `aido-test-${Date.now()}-5.db`);

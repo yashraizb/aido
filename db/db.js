@@ -100,6 +100,18 @@ function runMigrations(db) {
   if (!existingInbox) {
     db.prepare("INSERT INTO lists (name, kind) VALUES ('Inbox', 'user')").run();
   }
+
+  const systemList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+  const inboxList = db.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+  if (systemList && inboxList) {
+    const orphanedTasks = db.prepare('SELECT id FROM tasks WHERE list_id = ?').all(systemList.id);
+    const reassignOwner = db.prepare('UPDATE tasks SET list_id = ? WHERE id = ?');
+    const preserveTodayLink = db.prepare('INSERT OR IGNORE INTO task_list_links (task_id, list_id) VALUES (?, ?)');
+    for (const task of orphanedTasks) {
+      reassignOwner.run(inboxList.id, task.id);
+      preserveTodayLink.run(task.id, systemList.id);
+    }
+  }
 }
 
 function initDb(dbPath = DB_PATH) {
