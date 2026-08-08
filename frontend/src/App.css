@@ -510,6 +510,31 @@ body {
   background: #e8f0fe;
 }
 
+.timeline-row {
+  align-items: center;
+}
+
+.timeline-restore-btn {
+  border: 1px solid #d2e3fc;
+  background: transparent;
+  color: #174ea6;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.timeline-restore-btn:hover:not(:disabled) {
+  background: #e8f0fe;
+}
+
+.timeline-restore-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .task-delete {
   border: 0;
   background: transparent;

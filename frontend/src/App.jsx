@@ -3,6 +3,7 @@ import NavRail from './components/NavRail.jsx';
 import ListsView from './components/ListsView.jsx';
 import CompletedView from './components/CompletedView.jsx';
 import TodayBoard from './components/TodayBoard.jsx';
+import Timeline from './components/Timeline.jsx';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('lists');
@@ -16,12 +17,7 @@ export default function App() {
           <ListsView />
         </div>
         {activeSection === 'completed' && <CompletedView />}
-        {activeSection === 'timeline' && (
-          <section className="placeholder-panel" aria-label="Timeline">
-            <h1 className="tasks-title">Timeline</h1>
-            <p className="empty-note">The Timeline is coming soon.</p>
-          </section>
-        )}
+        {activeSection === 'timeline' && <Timeline />}
       </div>
     </div>
   );
