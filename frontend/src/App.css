@@ -572,6 +572,8 @@ body {
   border-radius: 12px;
   padding: 12px;
   min-height: 240px;
+  display: flex;
+  flex-direction: column;
 }
 
 .kanban-column-heading {
@@ -590,9 +592,11 @@ body {
 }
 
 .kanban-column-dropzone {
+  flex: 1;
   min-height: 60px;
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
 .kanban-column-dropzone-over {

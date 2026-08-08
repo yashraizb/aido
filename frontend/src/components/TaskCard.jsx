@@ -6,8 +6,15 @@ function nextStatusFor(status) {
   return STATUS_ORDER[index + 1];
 }
 
+function previousStatusFor(status) {
+  const index = STATUS_ORDER.indexOf(status);
+  if (index <= 0) return null;
+  return STATUS_ORDER[index - 1];
+}
+
 export default function TaskCard({ task, listName, onAdvance, onRemoveFromToday, onDragStart }) {
   const advanceTo = nextStatusFor(task.status);
+  const retreatTo = previousStatusFor(task.status);
   const tags = Array.isArray(task.tags) ? task.tags : [];
 
   return (
@@ -26,6 +33,16 @@ export default function TaskCard({ task, listName, onAdvance, onRemoveFromToday,
         ))}
       </div>
       <div className="kanban-card-actions">
+        {retreatTo && (
+          <button
+            type="button"
+            className="kanban-advance-btn"
+            onClick={() => onAdvance(task.id, retreatTo)}
+            aria-label={`Move ${task.title} back to ${retreatTo.replace('_', ' ')}`}
+          >
+            ←
+          </button>
+        )}
         {advanceTo && (
           <button
             type="button"
