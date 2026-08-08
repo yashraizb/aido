@@ -497,3 +497,35 @@ test('listAuditLogs with no arguments beyond db still returns everything (REST b
   assert.strictEqual(results.length, 10);
   db.close();
 });
+
+test('listAuditLogs treats negative limit as no limit (not as cap bypass)', () => {
+  const db = initDb(':memory:');
+  const { addTask, listAuditLogs } = require('./tasks.js');
+
+  for (let i = 0; i < 55; i += 1) {
+    addTask(db, `Task ${i}`);
+  }
+
+  const resultsWithNegativeLimit = listAuditLogs(db, null, -1);
+  const resultsWithNoLimit = listAuditLogs(db);
+
+  assert.strictEqual(resultsWithNegativeLimit.length, resultsWithNoLimit.length);
+  assert.strictEqual(resultsWithNegativeLimit.length, 55);
+  db.close();
+});
+
+test('listAuditLogs treats zero limit as no limit', () => {
+  const db = initDb(':memory:');
+  const { addTask, listAuditLogs } = require('./tasks.js');
+
+  for (let i = 0; i < 55; i += 1) {
+    addTask(db, `Task ${i}`);
+  }
+
+  const resultsWithZeroLimit = listAuditLogs(db, null, 0);
+  const resultsWithNoLimit = listAuditLogs(db);
+
+  assert.strictEqual(resultsWithZeroLimit.length, resultsWithNoLimit.length);
+  assert.strictEqual(resultsWithZeroLimit.length, 55);
+  db.close();
+});
