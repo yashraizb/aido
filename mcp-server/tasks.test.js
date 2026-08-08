@@ -410,3 +410,90 @@ test('a task cannot be assigned the system list as its owning list (REST/MCP bou
   assert.strictEqual(result.rejected, true);
   db.close();
 });
+
+test('listTasks filters by status alone when no listId is given', () => {
+  const db = initDb(':memory:');
+  const { addTask, setTaskStatus, listTasks } = require('./tasks.js');
+
+  const pendingTask = addTask(db, 'Still pending');
+  const doneTask = addTask(db, 'Already done');
+  setTaskStatus(db, doneTask.id, 'done');
+
+  const results = listTasks(db, null, 'done');
+
+  assert.strictEqual(results.length, 1);
+  assert.strictEqual(results[0].id, doneTask.id);
+  db.close();
+});
+
+test('listTasks filters by both listId and status together', () => {
+  const db = initDb(':memory:');
+  const { addTask, createList, setTaskStatus, listTasks } = require('./tasks.js');
+
+  const otherList = createList(db, 'Other list');
+  const taskA = addTask(db, 'Task A');
+  const taskB = addTask(db, 'Task B', otherList.id);
+  setTaskStatus(db, taskA.id, 'done');
+  setTaskStatus(db, taskB.id, 'done');
+
+  const inboxDone = listTasks(db, taskA.list_id, 'done');
+
+  assert.strictEqual(inboxDone.length, 1);
+  assert.strictEqual(inboxDone[0].id, taskA.id);
+  db.close();
+});
+
+test('listTasks with no arguments beyond db still returns everything (REST backward compatibility)', () => {
+  const db = initDb(':memory:');
+  const { addTask, listTasks } = require('./tasks.js');
+
+  addTask(db, 'First');
+  addTask(db, 'Second');
+
+  const results = listTasks(db);
+
+  assert.strictEqual(results.length, 2);
+  db.close();
+});
+
+test('listAuditLogs filters by entityType', () => {
+  const db = initDb(':memory:');
+  const { addTask, createList, listAuditLogs } = require('./tasks.js');
+
+  addTask(db, 'A task'); // records a 'task' entity_type audit entry
+  createList(db, 'A list'); // records a 'list' entity_type audit entry
+
+  const taskEntries = listAuditLogs(db, 'task');
+
+  assert.ok(taskEntries.length > 0);
+  assert.ok(taskEntries.every((entry) => entry.entity_type === 'task'));
+  db.close();
+});
+
+test('listAuditLogs caps limit at 50 even if a larger limit is requested', () => {
+  const db = initDb(':memory:');
+  const { addTask, listAuditLogs } = require('./tasks.js');
+
+  for (let i = 0; i < 55; i += 1) {
+    addTask(db, `Task ${i}`);
+  }
+
+  const results = listAuditLogs(db, null, 1000);
+
+  assert.strictEqual(results.length, 50);
+  db.close();
+});
+
+test('listAuditLogs with no arguments beyond db still returns everything (REST backward compatibility)', () => {
+  const db = initDb(':memory:');
+  const { addTask, listAuditLogs } = require('./tasks.js');
+
+  for (let i = 0; i < 10; i += 1) {
+    addTask(db, `Task ${i}`);
+  }
+
+  const results = listAuditLogs(db);
+
+  assert.strictEqual(results.length, 10);
+  db.close();
+});

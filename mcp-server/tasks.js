@@ -183,13 +183,21 @@ function addTask(db, title, listId = null, tagNames = [], linkedListIds = []) {
   return task;
 }
 
-function listTasks(db, listId = null) {
-  let tasks;
-  if (listId == null) {
-    tasks = db.prepare('SELECT * FROM tasks ORDER BY id ASC').all();
-  } else {
-    tasks = db.prepare('SELECT * FROM tasks WHERE list_id = ? ORDER BY id ASC').all(listId);
+function listTasks(db, listId = null, status = null) {
+  const conditions = [];
+  const params = [];
+
+  if (listId != null) {
+    conditions.push('list_id = ?');
+    params.push(listId);
   }
+  if (status != null) {
+    conditions.push('status = ?');
+    params.push(status);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const tasks = db.prepare(`SELECT * FROM tasks ${whereClause} ORDER BY id ASC`).all(...params);
   return hydrateTasks(db, tasks);
 }
 
@@ -250,10 +258,25 @@ function listTags(db) {
   return db.prepare('SELECT * FROM tags ORDER BY name COLLATE NOCASE ASC').all();
 }
 
-function listAuditLogs(db) {
+function listAuditLogs(db, entityType = null, limit = null) {
+  const conditions = [];
+  const params = [];
+
+  if (entityType != null) {
+    conditions.push('entity_type = ?');
+    params.push(entityType);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const effectiveLimit = limit != null ? Math.min(limit, 50) : null;
+  const limitClause = effectiveLimit != null ? 'LIMIT ?' : '';
+  const queryParams = effectiveLimit != null ? [...params, effectiveLimit] : params;
+
   return db
-    .prepare('SELECT id, action, entity_type, entity_id, details_json, created_at FROM audit_logs ORDER BY id DESC')
-    .all()
+    .prepare(
+      `SELECT id, action, entity_type, entity_id, details_json, created_at FROM audit_logs ${whereClause} ORDER BY id DESC ${limitClause}`
+    )
+    .all(...queryParams)
     .map((row) => ({
       ...row,
       details: JSON.parse(row.details_json),
