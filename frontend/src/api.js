@@ -96,6 +96,11 @@ export async function getCompletedTasks() {
   return parseResponse(res);
 }
 
+export async function getTodayTasks() {
+  const res = await fetch(`${API_BASE}/tasks/today`);
+  return parseResponse(res);
+}
+
 export async function createList(name) {
   const res = await fetch(LISTS_URL, {
     method: 'POST',
