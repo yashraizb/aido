@@ -314,6 +314,38 @@ test('restoreAuditLog preserves kind=system on the Today list', () => {
   db.close();
 });
 
+test('restoreAuditLog reconciles the system/Inbox lists when the target snapshot has none (pre-migration snapshot simulation)', () => {
+  const db = initDb(':memory:');
+  const { addTask, restoreAuditLog } = require('./tasks.js');
+
+  addTask(db, 'Some task');
+
+  // Simulate a very old audit-log entry recorded before the kind='system'/'user'
+  // migration ever ran: its snapshot's lists array has no kind='system' entry at all
+  // (as would be the case for a snapshot captured pre-migration).
+  const preMigrationSnapshot = {
+    lists: [{ id: 1, name: 'My Tasks', kind: 'user', created_at: '2020-01-01', updated_at: '2020-01-01' }],
+    tasks: [],
+    tags: [],
+    task_tags: [],
+    task_list_links: [],
+  };
+  const info = db
+    .prepare(
+      'INSERT INTO audit_logs (action, entity_type, entity_id, details_json, snapshot_json) VALUES (?, ?, ?, ?, ?)'
+    )
+    .run('create_task', 'task', null, JSON.stringify({}), JSON.stringify(preMigrationSnapshot));
+  const preMigrationAuditId = info.lastInsertRowid;
+
+  restoreAuditLog(db, preMigrationAuditId);
+
+  const systemLists = db.prepare("SELECT COUNT(*) AS count FROM lists WHERE kind = 'system'").get();
+  const userLists = db.prepare("SELECT COUNT(*) AS count FROM lists WHERE kind = 'user'").get();
+  assert.strictEqual(systemLists.count, 1);
+  assert.ok(userLists.count >= 1);
+  db.close();
+});
+
 test('updateList rejects renaming the reserved system list', () => {
   const db = initDb(':memory:');
   const { listLists, updateList } = require('./tasks.js');

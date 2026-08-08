@@ -365,6 +365,26 @@ function restoreAuditLog(db, auditId) {
     for (const row of snapshot.tags) insertTag.run(row.id, row.name, row.created_at, row.updated_at);
     for (const row of snapshot.task_tags) insertTaskTag.run(row.task_id, row.tag_id);
     for (const row of snapshot.task_list_links) insertTaskListLink.run(row.task_id, row.list_id);
+
+    // Reconcile the reserved system/Inbox lists in case the restored snapshot
+    // predates the kind='system'/'user' migration (e.g. a very old audit-log
+    // entry recorded before the Today system list existed). Mirrors the
+    // reconciliation runMigrations() performs in db/db.js at startup, so a
+    // runtime restore can never leave the database without these lists.
+    const existingSystemList = db.prepare("SELECT id FROM lists WHERE kind = 'system'").get();
+    if (!existingSystemList) {
+      const existingTodayNamed = db.prepare("SELECT id FROM lists WHERE name = 'Today'").get();
+      if (existingTodayNamed) {
+        db.prepare("UPDATE lists SET kind = 'system' WHERE id = ?").run(existingTodayNamed.id);
+      } else {
+        db.prepare("INSERT INTO lists (name, kind) VALUES ('Today', 'system')").run();
+      }
+    }
+
+    const existingInbox = db.prepare("SELECT id FROM lists WHERE kind = 'user' AND name = 'Inbox'").get();
+    if (!existingInbox) {
+      db.prepare("INSERT INTO lists (name, kind) VALUES ('Inbox', 'user')").run();
+    }
   });
 
   tx();
