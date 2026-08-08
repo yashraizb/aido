@@ -73,9 +73,12 @@ server.tool(
 
 server.tool(
   'list_tasks',
-  { listId: z.number().int().positive().optional().describe('Optional list ID filter') },
-  async ({ listId }) => {
-    const tasks = listTasks(db, listId ?? null);
+  {
+    listId: z.number().int().positive().describe('List ID to filter by (required — narrow the query, do not fetch every list)'),
+    status: z.enum(['pending', 'in_progress', 'done']).describe('Status to filter by (required — narrow the query, do not fetch every status)'),
+  },
+  async ({ listId, status }) => {
+    const tasks = listTasks(db, listId, status);
     return { content: [{ type: 'text', text: JSON.stringify(tasks) }] };
   }
 );
@@ -186,10 +189,19 @@ server.tool('list_tags', 'List all tags', async () => {
   return { content: [{ type: 'text', text: JSON.stringify(tags) }] };
 });
 
-server.tool('list_audit_logs', 'List audit log entries', async () => {
-  const logs = listAuditLogs(db);
-  return { content: [{ type: 'text', text: JSON.stringify(logs) }] };
-});
+server.tool(
+  'list_audit_logs',
+  {
+    entityType: z
+      .enum(['task', 'list', 'tag', 'audit_log'])
+      .describe('Entity type to filter by (required — narrow the query, do not fetch every entry)'),
+    limit: z.number().int().positive().max(50).describe('Maximum number of entries to return (required, max 50)'),
+  },
+  async ({ entityType, limit }) => {
+    const logs = listAuditLogs(db, entityType, limit);
+    return { content: [{ type: 'text', text: JSON.stringify(logs) }] };
+  }
+);
 
 server.tool(
   'create_list',
