@@ -61,21 +61,26 @@ export default function ListsView() {
 
   useEffect(() => {
     let cancelled = false;
+    let intervalId = null;
 
     async function loadTodayListId() {
       try {
         const systemLists = await getSystemLists();
-        if (!cancelled && systemLists.length > 0) {
+        if (cancelled) return;
+        if (systemLists.length > 0) {
           setTodayListId(systemLists[0].id);
+          if (intervalId) clearInterval(intervalId);
         }
       } catch {
-        // Non-fatal: "Pull to Today" simply won't be available if this fails.
+        // Transient failure — retried on the next interval tick below.
       }
     }
 
     loadTodayListId();
+    intervalId = setInterval(loadTodayListId, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 

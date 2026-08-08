@@ -39,7 +39,7 @@ export default function CompletedView() {
         {tasks.map((task) => {
           const linkedLists = Array.isArray(task.linked_lists) ? task.linked_lists : [];
           return (
-            <li key={task.id} className="task-row">
+            <li key={task.id} className="list-feed-row">
               <div className="task-text-wrap">
                 <span className="task-title task-title-done">{task.title}</span>
                 {linkedLists.length > 0 && (

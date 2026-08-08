@@ -67,7 +67,7 @@ export default function Timeline() {
       {!loading && entries.length === 0 && <p className="empty-note">No activity recorded yet.</p>}
       <ul className="task-list">
         {entries.map((entry) => (
-          <li key={entry.id} className="task-row timeline-row">
+          <li key={entry.id} className="list-feed-row timeline-row">
             <div className="task-text-wrap">
               <span className="task-title">{describeAuditEntry(entry)}</span>
               <span className="task-meta">{formatTimestamp(entry.created_at)}</span>

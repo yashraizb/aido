@@ -510,6 +510,19 @@ body {
   background: #e8f0fe;
 }
 
+.list-feed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+
+.list-feed-row:hover {
+  background: var(--hover);
+}
+
 .timeline-row {
   align-items: center;
 }
