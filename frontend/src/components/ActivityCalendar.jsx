@@ -1,14 +1,19 @@
+import { useState } from 'react';
+
 function startOfUtcDay(date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function buildCalendarWeeks(referenceDate) {
-  const end = startOfUtcDay(referenceDate);
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - 364);
+function buildYearWeeks(year, today) {
+  const currentYear = today.getUTCFullYear();
+  const rangeEnd = year === currentYear ? today : new Date(Date.UTC(year, 11, 31));
+  const rangeStart = new Date(Date.UTC(year, 0, 1));
 
-  const startDay = start.getUTCDay();
-  start.setUTCDate(start.getUTCDate() - startDay);
+  const start = new Date(rangeStart);
+  start.setUTCDate(start.getUTCDate() - start.getUTCDay());
+
+  const end = new Date(rangeEnd);
+  end.setUTCDate(end.getUTCDate() + (6 - end.getUTCDay()));
 
   const days = [];
   const cursor = new Date(start);
@@ -32,7 +37,20 @@ function levelForCount(count) {
   return 4;
 }
 
+function yearsWithData(completedTasks, currentYear) {
+  const years = new Set([currentYear]);
+  for (const task of completedTasks) {
+    if (!task.updated_at) continue;
+    years.add(Number(task.updated_at.slice(0, 4)));
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
 export default function ActivityCalendar({ completedTasks }) {
+  const today = startOfUtcDay(new Date());
+  const currentYear = today.getUTCFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
   const countsByDate = {};
   for (const task of completedTasks) {
     if (!task.updated_at) continue;
@@ -40,14 +58,33 @@ export default function ActivityCalendar({ completedTasks }) {
     countsByDate[key] = (countsByDate[key] || 0) + 1;
   }
 
-  const weeks = buildCalendarWeeks(new Date());
+  const years = yearsWithData(completedTasks, currentYear);
+  const weeks = buildYearWeeks(selectedYear, today);
 
   return (
-    <div className="activity-calendar" aria-label="Task completion activity, last 12 months">
+    <div className="activity-calendar" aria-label={`Task completion activity for ${selectedYear}`}>
+      <div className="activity-calendar-header">
+        <select
+          className="activity-calendar-year-select"
+          value={selectedYear}
+          onChange={(event) => setSelectedYear(Number(event.target.value))}
+          aria-label="Select year"
+        >
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="activity-calendar-grid">
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="activity-calendar-week">
             {week.map((day) => {
+              const inYear = day.getUTCFullYear() === selectedYear;
+              if (!inYear) {
+                return <div key={day.toISOString()} className="activity-calendar-day activity-calendar-day-empty" />;
+              }
               const key = day.toISOString().slice(0, 10);
               const count = countsByDate[key] || 0;
               const level = levelForCount(count);
