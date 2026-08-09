@@ -81,8 +81,8 @@ export default function ActivityCalendar({ completedTasks }) {
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="activity-calendar-week">
             {week.map((day) => {
-              const inYear = day.getUTCFullYear() === selectedYear;
-              if (!inYear) {
+              const isVisible = day.getUTCFullYear() === selectedYear && day <= today;
+              if (!isVisible) {
                 return <div key={day.toISOString()} className="activity-calendar-day activity-calendar-day-empty" />;
               }
               const key = day.toISOString().slice(0, 10);
