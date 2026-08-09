@@ -51,7 +51,7 @@ export default function ActivityCalendar({ completedTasks }) {
               const key = day.toISOString().slice(0, 10);
               const count = countsByDate[key] || 0;
               const level = levelForCount(count);
-              const label = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const label = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
               const countLabel = count === 1 ? '1 task completed' : `${count} tasks completed`;
 
               return (
