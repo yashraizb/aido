@@ -55,7 +55,7 @@ body {
   padding: 10px 12px;
   background: transparent;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
 }
@@ -116,7 +116,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .list-search-input:focus {
@@ -136,7 +136,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
 }
 
 .list-create-input:focus,
@@ -200,7 +200,7 @@ body {
   background: #eef2f7;
   color: #263238;
   padding: 6px 8px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .list-delete-btn {
@@ -230,7 +230,7 @@ body {
 
 .tasks-title {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 
@@ -240,7 +240,7 @@ body {
   padding: 8px 10px;
   background: var(--error-bg);
   color: var(--error-text);
-  font-size: 0.92rem;
+  font-size: var(--text-base);
 }
 
 .list-task-grid {
@@ -262,7 +262,7 @@ body {
 
 .list-task-heading {
   margin: 0 0 8px;
-  font-size: 1.08rem;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
@@ -297,12 +297,12 @@ body {
 
 .task-modal-title {
   margin: 0 0 10px;
-  font-size: 1.06rem;
+  font-size: var(--text-lg);
 }
 
 .task-modal-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   margin-bottom: 6px;
 }
@@ -313,7 +313,7 @@ body {
   border: 1px solid #dce2e8;
   border-radius: 9px;
   padding: 9px 10px;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   margin-bottom: 10px;
   background: #fff;
 }
@@ -358,7 +358,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 4px;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .task-modal-tag-capsules {
@@ -466,7 +466,7 @@ body {
 }
 
 .task-title {
-  font-size: 1rem;
+  font-size: var(--text-base);
   color: var(--text);
 }
 
@@ -487,20 +487,20 @@ body {
   border: 1px solid #d2e3fc;
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 0.73rem;
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 
 .task-meta {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
 }
 
 .task-edit-inline-btn {
   border: 0;
   background: transparent;
   color: #5f6368;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   line-height: 1;
   padding: 6px 8px;
@@ -520,7 +520,7 @@ body {
   color: #174ea6;
   border-radius: 8px;
   padding: 4px 8px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -552,7 +552,7 @@ body {
   color: #174ea6;
   border-radius: 8px;
   padding: 6px 10px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -635,7 +635,7 @@ body {
 
 .kanban-column-heading {
   margin: 0 0 10px;
-  font-size: 1.02rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -645,7 +645,7 @@ body {
 .kanban-column-count {
   color: var(--muted);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .kanban-column-dropzone {
@@ -671,7 +671,7 @@ body {
 }
 
 .kanban-card-title {
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-weight: 500;
   margin-bottom: 6px;
 }
@@ -708,7 +708,7 @@ body {
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   padding: 4px 6px;
 }
