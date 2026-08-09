@@ -96,7 +96,6 @@ body {
 }
 
 .sidebar-lists-toggle-wrap {
-  margin-top: auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
