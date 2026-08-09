@@ -86,11 +86,25 @@ body {
   gap: 16px;
 }
 
+.sidebar-lists-toggle-wrap {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-lists-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .sidebar-lists-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+  margin-top: 8px;
   overflow-y: auto;
 }
 

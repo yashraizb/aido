@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today' },
-  { id: 'lists', label: 'Lists' },
   { id: 'completed', label: 'Completed' },
   { id: 'timeline', label: 'Timeline' },
 ];
@@ -24,10 +23,16 @@ export default function PrimarySidebar({
   onDeleteList,
 }) {
   const [listSearchQuery, setListSearchQuery] = useState('');
+  const [listsExpanded, setListsExpanded] = useState(active === 'lists');
 
   const filteredLists = lists.filter((list) =>
     list.name.toLowerCase().includes(listSearchQuery.toLowerCase())
   );
+
+  function handleSelectList(listId, checked) {
+    onSelect('lists');
+    onCheckedListChange(listId, checked);
+  }
 
   return (
     <nav className="primary-sidebar" aria-label="Primary">
@@ -46,7 +51,21 @@ export default function PrimarySidebar({
         ))}
       </ul>
 
-      {active === 'lists' && (
+      <div className="sidebar-lists-toggle-wrap">
+        <button
+          type="button"
+          className={active === 'lists' ? 'nav-rail-btn nav-rail-btn-active sidebar-lists-toggle' : 'nav-rail-btn sidebar-lists-toggle'}
+          onClick={() => {
+            onSelect('lists');
+            setListsExpanded((current) => !current);
+          }}
+          aria-expanded={listsExpanded}
+        >
+          <span>Lists</span>
+          <span aria-hidden="true">{listsExpanded ? '▾' : '▸'}</span>
+        </button>
+
+        {listsExpanded && (
         <div className="sidebar-lists-section" aria-label="Task lists">
           <input
             className="list-search-input"
@@ -88,7 +107,7 @@ export default function PrimarySidebar({
                         className="list-visibility-check"
                         type="checkbox"
                         checked={isChecked}
-                        onChange={(event) => onCheckedListChange(list.id, event.target.checked)}
+                        onChange={(event) => handleSelectList(list.id, event.target.checked)}
                         aria-label={`Show tasks for ${list.name}`}
                       />
                       <input
@@ -113,13 +132,13 @@ export default function PrimarySidebar({
                         className="list-visibility-check"
                         type="checkbox"
                         checked={isChecked}
-                        onChange={(event) => onCheckedListChange(list.id, event.target.checked)}
+                        onChange={(event) => handleSelectList(list.id, event.target.checked)}
                         aria-label={`Show tasks for ${list.name}`}
                       />
                       <button
                         className="list-name-btn"
                         type="button"
-                        onClick={() => onCheckedListChange(list.id, !isChecked)}
+                        onClick={() => handleSelectList(list.id, !isChecked)}
                       >
                         {list.name}
                       </button>
@@ -140,7 +159,8 @@ export default function PrimarySidebar({
             })}
           </ul>
         </div>
-      )}
+        )}
+      </div>
     </nav>
   );
 }
