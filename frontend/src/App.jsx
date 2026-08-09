@@ -7,7 +7,7 @@ import TodayBoard from './components/TodayBoard.jsx';
 import Timeline from './components/Timeline.jsx';
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('lists');
+  const [activeSection, setActiveSection] = useState('dashboard');
   const workspace = useListsWorkspace();
 
   function handleStartRename(id, name) {
