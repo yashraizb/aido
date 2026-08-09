@@ -8,6 +8,10 @@
   --accent: #1a73e8;
   --error-bg: #fde8e8;
   --error-text: #a50e0e;
+  --text-sm: 0.82rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.08rem;
+  --text-xl: 1.4rem;
 }
 
 * {
