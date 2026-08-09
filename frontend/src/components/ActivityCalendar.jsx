@@ -46,6 +46,15 @@ function yearsWithData(completedTasks, currentYear) {
   return [...years].sort((a, b) => b - a);
 }
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function monthLabelsForWeeks(weeks, year) {
+  return weeks.map((week) => {
+    const monthStart = week.find((day) => day.getUTCDate() === 1 && day.getUTCFullYear() === year);
+    return monthStart ? MONTH_NAMES[monthStart.getUTCMonth()] : '';
+  });
+}
+
 export default function ActivityCalendar({ completedTasks }) {
   const today = startOfUtcDay(new Date());
   const currentYear = today.getUTCFullYear();
@@ -60,6 +69,8 @@ export default function ActivityCalendar({ completedTasks }) {
 
   const years = yearsWithData(completedTasks, currentYear);
   const weeks = buildYearWeeks(selectedYear, today);
+  const monthLabels = monthLabelsForWeeks(weeks, selectedYear);
+  const columnStyle = { gridTemplateColumns: `repeat(${weeks.length}, 1fr)` };
 
   return (
     <div className="activity-calendar" aria-label={`Task completion activity for ${selectedYear}`}>
@@ -77,7 +88,14 @@ export default function ActivityCalendar({ completedTasks }) {
           ))}
         </select>
       </div>
-      <div className="activity-calendar-grid">
+      <div className="activity-calendar-months" style={columnStyle}>
+        {monthLabels.map((label, index) => (
+          <span key={index} className="activity-calendar-month-label">
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="activity-calendar-grid" style={columnStyle}>
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="activity-calendar-week">
             {week.map((day) => {
