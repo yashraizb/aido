@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -24,10 +24,35 @@ export default function PrimarySidebar({
 }) {
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listsExpanded, setListsExpanded] = useState(active === 'lists');
+  const [openMenuListId, setOpenMenuListId] = useState(null);
+  const openMenuRef = useRef(null);
 
   const filteredLists = lists.filter((list) =>
     list.name.toLowerCase().includes(listSearchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    if (openMenuListId === null) return undefined;
+
+    function handleOutsideClick(event) {
+      if (openMenuRef.current && !openMenuRef.current.contains(event.target)) {
+        setOpenMenuListId(null);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setOpenMenuListId(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openMenuListId]);
 
   function handleSelectList(listId, checked) {
     onSelect('lists');
@@ -146,18 +171,53 @@ export default function PrimarySidebar({
                       >
                         {list.name}
                       </button>
-                      <button
-                        className="list-mini-btn"
-                        type="button"
-                        onClick={() => onStartRename(list.id, list.name)}
+                      <div
+                        className="list-menu-wrap"
+                        ref={list.id === openMenuListId ? openMenuRef : null}
                       >
-                        Rename
-                      </button>
+                        <button
+                          type="button"
+                          className="list-menu-trigger"
+                          aria-haspopup="true"
+                          aria-expanded={openMenuListId === list.id}
+                          aria-label={`Options for ${list.name}`}
+                          onClick={() =>
+                            setOpenMenuListId((current) => (current === list.id ? null : list.id))
+                          }
+                        >
+                          <span aria-hidden="true">⋮</span>
+                        </button>
+                        {openMenuListId === list.id && (
+                          <div className="list-menu-dropdown" role="menu">
+                            <button
+                              type="button"
+                              className="list-menu-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuListId(null);
+                                onStartRename(list.id, list.name);
+                              }}
+                            >
+                              <span aria-hidden="true">✏️</span>
+                              Rename
+                            </button>
+                            <button
+                              type="button"
+                              className="list-menu-item list-menu-item-danger"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuListId(null);
+                                onDeleteList(list.id);
+                              }}
+                            >
+                              <span aria-hidden="true">🗑</span>
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
-                  <button className="list-delete-btn" type="button" onClick={() => onDeleteList(list.id)}>
-                    🗑
-                  </button>
                 </li>
               );
             })}
