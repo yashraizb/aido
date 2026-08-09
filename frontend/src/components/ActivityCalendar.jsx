@@ -70,7 +70,7 @@ export default function ActivityCalendar({ completedTasks }) {
   const years = yearsWithData(completedTasks, currentYear);
   const weeks = buildYearWeeks(selectedYear, today);
   const monthLabels = monthLabelsForWeeks(weeks, selectedYear);
-  const columnStyle = { gridTemplateColumns: `repeat(${weeks.length}, 1fr)` };
+  const columnStyle = { gridTemplateColumns: `repeat(${weeks.length}, minmax(6px, 1fr))` };
 
   return (
     <div className="activity-calendar" aria-label={`Task completion activity for ${selectedYear}`}>
