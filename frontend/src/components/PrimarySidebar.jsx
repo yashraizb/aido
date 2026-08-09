@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { dropdownOverflowsBoundary } from '../dropdownPlacement.js';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -28,7 +29,6 @@ export default function PrimarySidebar({
   const [menuOpensUpward, setMenuOpensUpward] = useState(false);
   const openMenuRef = useRef(null);
   const menuDropdownRef = useRef(null);
-  const sectionRef = useRef(null);
 
   const filteredLists = lists.filter((list) =>
     list.name.toLowerCase().includes(listSearchQuery.toLowerCase())
@@ -64,12 +64,7 @@ export default function PrimarySidebar({
     }
     const dropdown = menuDropdownRef.current;
     if (!dropdown) return;
-    const dropdownRect = dropdown.getBoundingClientRect();
-    const sectionBottom = sectionRef.current
-      ? sectionRef.current.getBoundingClientRect().bottom
-      : window.innerHeight;
-    const availableBottom = Math.min(sectionBottom, window.innerHeight);
-    setMenuOpensUpward(dropdownRect.bottom > availableBottom);
+    setMenuOpensUpward(dropdownOverflowsBoundary(dropdown));
   }, [openMenuListId]);
 
   function handleSelectList(listId, checked) {
@@ -111,7 +106,7 @@ export default function PrimarySidebar({
         </div>
 
         {listsExpanded && (
-        <div className="sidebar-lists-section" aria-label="Task lists" ref={sectionRef}>
+        <div className="sidebar-lists-section" aria-label="Task lists">
           <input
             className="list-search-input"
             type="text"

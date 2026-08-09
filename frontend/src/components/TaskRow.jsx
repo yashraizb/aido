@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import AddTaskModal from './AddTaskModal.jsx';
 import { formatTimestamp } from '../formatTimestamp.js';
+import { dropdownOverflowsBoundary } from '../dropdownPlacement.js';
 
 export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions, onPullToToday }) {
   const isDone = task.status === 'done';
@@ -45,7 +46,7 @@ export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions,
     }
     const dropdown = menuDropdownRef.current;
     if (!dropdown) return;
-    setMenuOpensUpward(dropdown.getBoundingClientRect().bottom > window.innerHeight);
+    setMenuOpensUpward(dropdownOverflowsBoundary(dropdown));
   }, [menuOpen]);
 
   return (
