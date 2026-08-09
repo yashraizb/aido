@@ -64,6 +64,11 @@ body {
   background: var(--hover);
 }
 
+.nav-rail-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .nav-rail-btn-active {
   background: #e8f0fe;
   color: #174ea6;
@@ -185,6 +190,11 @@ body {
   cursor: pointer;
 }
 
+.list-visibility-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .list-item-selected {
   background: #e8f0fe;
 }
@@ -194,6 +204,14 @@ body {
   text-align: left;
   padding: 8px 8px;
   color: #1f1f1f;
+}
+
+.list-name-btn:focus-visible,
+.list-mini-btn:focus-visible,
+.list-delete-btn:focus-visible,
+.list-action-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .list-mini-btn {
@@ -514,6 +532,14 @@ body {
   background: #eef2f7;
 }
 
+.task-edit-inline-btn:focus-visible,
+.task-pull-today-btn:focus-visible,
+.task-delete:focus-visible,
+.completed-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .task-pull-today-btn {
   border: 1px solid #d2e3fc;
   background: transparent;
@@ -560,6 +586,11 @@ body {
 
 .timeline-restore-btn:hover:not(:disabled) {
   background: #e8f0fe;
+}
+
+.timeline-restore-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .timeline-restore-btn:disabled {
@@ -670,6 +701,11 @@ body {
   cursor: grab;
 }
 
+.kanban-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .kanban-card-title {
   font-size: var(--text-base);
   font-weight: 500;
@@ -702,6 +738,12 @@ body {
 
 .kanban-advance-btn:hover {
   background: #d2e3fc;
+}
+
+.kanban-advance-btn:focus-visible,
+.kanban-remove-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .kanban-remove-btn {
