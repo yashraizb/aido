@@ -191,6 +191,7 @@ server.tool('list_tags', 'List all tags', async () => {
 
 server.tool(
   'list_audit_logs',
+  'List audit log entries, filtered by entity type and bounded to at most 50 results',
   {
     entityType: z
       .enum(['task', 'list', 'tag', 'audit_log'])
