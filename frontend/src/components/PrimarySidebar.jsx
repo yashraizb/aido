@@ -52,18 +52,20 @@ export default function PrimarySidebar({
       </ul>
 
       <div className="sidebar-lists-toggle-wrap">
-        <button
-          type="button"
-          className={active === 'lists' ? 'nav-rail-btn nav-rail-btn-active sidebar-lists-toggle' : 'nav-rail-btn sidebar-lists-toggle'}
-          onClick={() => {
-            onSelect('lists');
-            setListsExpanded((current) => !current);
-          }}
-          aria-expanded={listsExpanded}
-        >
-          <span>Lists</span>
-          <span aria-hidden="true">{listsExpanded ? '▾' : '▸'}</span>
-        </button>
+        <div className={active === 'lists' ? 'sidebar-lists-toggle sidebar-lists-toggle-active' : 'sidebar-lists-toggle'}>
+          <button type="button" className="sidebar-lists-nav-btn" onClick={() => onSelect('lists')}>
+            Lists
+          </button>
+          <button
+            type="button"
+            className="sidebar-lists-expand-btn"
+            onClick={() => setListsExpanded((current) => !current)}
+            aria-expanded={listsExpanded}
+            aria-label={listsExpanded ? 'Collapse lists' : 'Expand lists'}
+          >
+            <span aria-hidden="true">{listsExpanded ? '▲' : '▼'}</span>
+          </button>
+        </div>
 
         {listsExpanded && (
         <div className="sidebar-lists-section" aria-label="Task lists">
@@ -76,23 +78,25 @@ export default function PrimarySidebar({
             aria-label="Search lists"
           />
           <div className="list-create-row">
-            <input
-              className="list-create-input"
-              type="text"
-              placeholder="New list"
-              value={newListName}
-              onChange={(event) => onNewListNameChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  onCreateList();
-                }
-              }}
-              aria-label="Create new list"
-            />
-            <button className="list-action-btn" type="button" onClick={() => onCreateList()}>
-              Add
-            </button>
+            <div className="list-create-input-wrap">
+              <input
+                className="list-create-input"
+                type="text"
+                placeholder="New list"
+                value={newListName}
+                onChange={(event) => onNewListNameChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    onCreateList();
+                  }
+                }}
+                aria-label="Create new list"
+              />
+              <button className="list-create-inline-btn" type="button" onClick={() => onCreateList()}>
+                Add
+              </button>
+            </div>
           </div>
           <ul className="lists-nav">
             {filteredLists.map((list) => {
