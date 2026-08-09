@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { dropdownOverflowsBoundary } from '../dropdownPlacement.js';
+import { useState } from 'react';
+import OptionsMenu from './OptionsMenu.jsx';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -25,47 +25,10 @@ export default function PrimarySidebar({
 }) {
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listsExpanded, setListsExpanded] = useState(active === 'lists');
-  const [openMenuListId, setOpenMenuListId] = useState(null);
-  const [menuOpensUpward, setMenuOpensUpward] = useState(false);
-  const openMenuRef = useRef(null);
-  const menuDropdownRef = useRef(null);
 
   const filteredLists = lists.filter((list) =>
     list.name.toLowerCase().includes(listSearchQuery.toLowerCase())
   );
-
-  useEffect(() => {
-    if (openMenuListId === null) return undefined;
-
-    function handleOutsideClick(event) {
-      if (openMenuRef.current && !openMenuRef.current.contains(event.target)) {
-        setOpenMenuListId(null);
-      }
-    }
-
-    function handleEscape(event) {
-      if (event.key === 'Escape') {
-        setOpenMenuListId(null);
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [openMenuListId]);
-
-  useLayoutEffect(() => {
-    if (openMenuListId === null) {
-      setMenuOpensUpward(false);
-      return;
-    }
-    const dropdown = menuDropdownRef.current;
-    if (!dropdown) return;
-    setMenuOpensUpward(dropdownOverflowsBoundary(dropdown));
-  }, [openMenuListId]);
 
   function handleSelectList(listId, checked) {
     onSelect('lists');
@@ -184,55 +147,13 @@ export default function PrimarySidebar({
                       >
                         {list.name}
                       </button>
-                      <div
-                        className="list-menu-wrap"
-                        ref={list.id === openMenuListId ? openMenuRef : null}
-                      >
-                        <button
-                          type="button"
-                          className="list-menu-trigger"
-                          aria-haspopup="true"
-                          aria-expanded={openMenuListId === list.id}
-                          aria-label={`Options for ${list.name}`}
-                          onClick={() =>
-                            setOpenMenuListId((current) => (current === list.id ? null : list.id))
-                          }
-                        >
-                          <span aria-hidden="true">⋮</span>
-                        </button>
-                        {openMenuListId === list.id && (
-                          <div
-                            className={menuOpensUpward ? 'list-menu-dropdown list-menu-dropdown-up' : 'list-menu-dropdown'}
-                            role="menu"
-                            ref={menuDropdownRef}
-                          >
-                            <button
-                              type="button"
-                              className="list-menu-item"
-                              role="menuitem"
-                              onClick={() => {
-                                setOpenMenuListId(null);
-                                onStartRename(list.id, list.name);
-                              }}
-                            >
-                              Rename
-                              <span aria-hidden="true">✏️</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="list-menu-item list-menu-item-danger"
-                              role="menuitem"
-                              onClick={() => {
-                                setOpenMenuListId(null);
-                                onDeleteList(list.id);
-                              }}
-                            >
-                              Delete
-                              <span aria-hidden="true">🗑</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <OptionsMenu
+                        ariaLabel={`Options for ${list.name}`}
+                        items={[
+                          { label: 'Rename', icon: '✏️', onSelect: () => onStartRename(list.id, list.name) },
+                          { label: 'Delete', icon: '🗑', onSelect: () => onDeleteList(list.id), danger: true },
+                        ]}
+                      />
                     </>
                   )}
                 </li>
