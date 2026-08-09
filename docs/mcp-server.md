@@ -15,7 +15,7 @@ All `id` / `listId` / `linkedListIds` parameters are validated as positive integ
 | Tool | Input | Behavior |
 |---|---|---|
 | `add_task` | `title` (string), `listId?` (int, default `1`), `linkedListIds?` (int[]), `tags?` (string[]) | Creates a task in `listId`, applies `tags` (creating any that don't exist yet), and makes it visible in `linkedListIds` too. Returns the created task (see [shape](#task-shape) below). |
-| `list_tasks` | `listId?` (int) | Lists all tasks, or only those owned by `listId` if given. Does **not** filter by `linked_list_ids` — this is an owner filter only. |
+| `list_tasks` | `listId` (int), `status` (`'pending'` \| `'in_progress'` \| `'done'`) | Lists tasks in a specific list with a specific status. Both parameters required — this narrowing is deliberate to prevent accidental expensive queries fetching every task across all lists and statuses. |
 | `complete_task` | `id` (int) | Shorthand for `update_task_status` with `status: 'done'`. One-directional — there's no `reopen_task` tool (see [Architecture: known gaps](architecture.md#known-gaps) for why). |
 | `update_task_status` | `id` (int), `status` (`'pending'` \| `'done'`) | General two-way status setter. `complete_task` is implemented in terms of this. |
 | `update_task_title` | `id` (int), `title` (string) | Rejects (isError) an empty/whitespace-only title after trimming. |
@@ -43,7 +43,7 @@ All `id` / `listId` / `linkedListIds` parameters are validated as positive integ
 
 | Tool | Input | Behavior |
 |---|---|---|
-| `list_audit_logs` | — | Returns all audit log entries, newest first, with `details_json` parsed into `details`. |
+| `list_audit_logs` | `entityType` (`'task'` \| `'list'` \| `'tag'` \| `'audit_log'`), `limit` (int, 1–50) | Returns audit log entries filtered by entity type and bounded to at most 50 results. Both parameters required — prevents expensive queries and bounds output size. |
 | `restore_audit_log` | `id` (int, an audit log's own id) | Wipes and reinserts `lists`/`tasks`/`tags`/`task_tags`/`task_list_links` from that log entry's stored snapshot. Itself recorded as a new audit log entry (`action: 'restore_audit_log'`) — so a restore can itself be undone by restoring to the entry just before it. |
 
 ## Task shape
