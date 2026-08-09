@@ -268,7 +268,7 @@ function listAuditLogs(db, entityType = null, limit = null) {
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const effectiveLimit = limit != null && limit > 0 ? Math.min(Math.trunc(limit), 50) : null;
+  const effectiveLimit = limit != null ? Math.min(Math.max(Math.trunc(limit), 1), 50) : null;
   const limitClause = effectiveLimit != null ? 'LIMIT ?' : '';
   const queryParams = effectiveLimit != null ? [...params, effectiveLimit] : params;
 
