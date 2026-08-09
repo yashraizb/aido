@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const NAV_ITEMS = [
-  { id: 'today', label: 'Today' },
+  { id: 'dashboard', label: 'Dashboard' },
   { id: 'completed', label: 'Completed' },
   { id: 'timeline', label: 'Timeline' },
 ];

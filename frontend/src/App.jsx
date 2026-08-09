@@ -34,7 +34,7 @@ export default function App() {
         onDeleteList={workspace.handleDeleteList}
       />
       <div className="main-panel">
-        {activeSection === 'today' && <TodayBoard />}
+        {activeSection === 'dashboard' && <TodayBoard />}
         <div style={{ display: activeSection === 'lists' ? undefined : 'none' }}>
           <ListsView
             visibleLists={workspace.visibleLists}

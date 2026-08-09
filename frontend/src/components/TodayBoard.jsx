@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getTodayTasks, getUserLists, getSystemLists, setStatus, updateTaskLinkedLists } from '../api.js';
+import { getTodayTasks, getCompletedTasks, getUserLists, getSystemLists, setStatus, updateTaskLinkedLists } from '../api.js';
 import TaskCard from './TaskCard.jsx';
+import ActivityCalendar from './ActivityCalendar.jsx';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -12,6 +13,7 @@ const COLUMNS = [
 
 export default function TodayBoard() {
   const [tasks, setTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
   const [listNameById, setListNameById] = useState({});
   const [todayListId, setTodayListId] = useState(null);
   const [error, setError] = useState(null);
@@ -19,9 +21,10 @@ export default function TodayBoard() {
 
   const refresh = useCallback(async () => {
     try {
-      const [today, userLists] = await Promise.all([getTodayTasks(), getUserLists()]);
+      const [today, userLists, completed] = await Promise.all([getTodayTasks(), getUserLists(), getCompletedTasks()]);
       setTasks(today);
       setListNameById(Object.fromEntries(userLists.map((list) => [list.id, list.name])));
+      setCompletedTasks(completed);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -120,9 +123,10 @@ export default function TodayBoard() {
   }
 
   return (
-    <section className="tasks-card" aria-label="Today board">
-      <h1 className="tasks-title">Today</h1>
+    <section className="tasks-card" aria-label="Dashboard">
+      <h1 className="tasks-title">Dashboard</h1>
       {error && <p className="error-banner">{error}</p>}
+      <ActivityCalendar completedTasks={completedTasks} />
       {tasks.length === 0 && (
         <p className="empty-note">
           Nothing here yet — pull a task into Today from the Lists view to see it on this board.
