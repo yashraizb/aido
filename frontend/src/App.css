@@ -713,6 +713,50 @@ body {
   color: var(--error-text);
 }
 
+.activity-calendar {
+  margin: 12px 0 20px;
+  overflow-x: auto;
+}
+
+.activity-calendar-grid {
+  display: flex;
+  gap: 3px;
+  width: max-content;
+}
+
+.activity-calendar-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-calendar-day {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: #ebedf0;
+}
+
+.activity-calendar-level-0 {
+  background: #ebedf0;
+}
+
+.activity-calendar-level-1 {
+  background: #cfe3fc;
+}
+
+.activity-calendar-level-2 {
+  background: #9cc6fa;
+}
+
+.activity-calendar-level-3 {
+  background: #4f96e8;
+}
+
+.activity-calendar-level-4 {
+  background: #174ea6;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
