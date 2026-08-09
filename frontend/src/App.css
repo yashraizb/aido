@@ -327,9 +327,15 @@ body {
   gap: 2px;
 }
 
+.list-menu-dropdown-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
 .list-menu-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   border: 0;
   border-radius: 6px;
@@ -544,7 +550,7 @@ body {
 
 .task-row {
   display: grid;
-  grid-template-columns: 28px 1fr auto auto;
+  grid-template-columns: 28px 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
@@ -638,27 +644,72 @@ body {
   font-size: var(--text-sm);
 }
 
-.task-edit-inline-btn {
+.task-menu-wrap {
+  position: relative;
+}
+
+.task-menu-trigger {
   border: 0;
+  border-radius: 8px;
   background: transparent;
   color: #5f6368;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: 1.1rem;
   line-height: 1;
-  padding: 6px 8px;
-  border-radius: 8px;
-  opacity: 1;
+  width: 30px;
+  height: 30px;
   cursor: pointer;
-  transition: background 0.18s ease;
 }
 
-.task-edit-inline-btn:hover {
-  background: #eef2f7;
+.task-menu-trigger:hover {
+  background: var(--hover);
 }
 
-.task-edit-inline-btn:focus-visible,
-.task-pull-today-btn:focus-visible,
-.task-delete:focus-visible,
+.task-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  min-width: 170px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(60, 64, 67, 0.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-menu-dropdown-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.task-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--text-sm);
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-menu-item:hover {
+  background: var(--hover);
+}
+
+.task-menu-item-danger {
+  color: var(--error-text);
+}
+
+.task-menu-trigger:focus-visible,
+.task-menu-item:focus-visible,
 .completed-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -675,21 +726,6 @@ body {
 .task-modal-cancel:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.task-pull-today-btn {
-  border: 1px solid #d2e3fc;
-  background: transparent;
-  color: #174ea6;
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.task-pull-today-btn:hover {
-  background: #e8f0fe;
 }
 
 .list-feed-row {
@@ -733,23 +769,6 @@ body {
 .timeline-restore-btn:disabled {
   opacity: 0.6;
   cursor: default;
-}
-
-.task-delete {
-  border: 0;
-  background: transparent;
-  color: #5f6368;
-  font-size: 1.45rem;
-  line-height: 1;
-  width: 36px;
-  height: 36px;
-  opacity: 1;
-  cursor: pointer;
-  transition: color 0.18s ease;
-}
-
-.task-delete:hover {
-  color: #3c4043;
 }
 
 .completed-section {

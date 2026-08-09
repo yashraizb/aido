@@ -1,3 +1,4 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import AddTaskModal from './AddTaskModal.jsx';
 import { formatTimestamp } from '../formatTimestamp.js';
 
@@ -7,6 +8,45 @@ export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions,
   const updatedLabel = formatTimestamp(task.updated_at);
   const linkedLists = Array.isArray(task.linked_lists) ? task.linked_lists : [];
   const linkedListIds = Array.isArray(task.linked_list_ids) ? task.linked_list_ids : [task.list_id];
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpensUpward, setMenuOpensUpward] = useState(false);
+  const menuRef = useRef(null);
+  const menuDropdownRef = useRef(null);
+  const editModalRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    function handleOutsideClick(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [menuOpen]);
+
+  useLayoutEffect(() => {
+    if (!menuOpen) {
+      setMenuOpensUpward(false);
+      return;
+    }
+    const dropdown = menuDropdownRef.current;
+    if (!dropdown) return;
+    setMenuOpensUpward(dropdown.getBoundingClientRect().bottom > window.innerHeight);
+  }, [menuOpen]);
 
   return (
     <li className="task-row">
@@ -36,8 +76,8 @@ export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions,
         <span className="task-meta">Last modified: {updatedLabel}</span>
       </div>
       <AddTaskModal
-        buttonLabel="Edit"
-        buttonClassName="task-edit-inline-btn"
+        ref={editModalRef}
+        hideTrigger
         dialogTitle="Edit task"
         listOptions={listOptions}
         initialTitle={task.title}
@@ -45,28 +85,64 @@ export default function TaskRow({ task, onToggle, onDelete, onEdit, listOptions,
         submitLabel="Save changes"
         onSubmit={({ title, linkedListIds: nextLinkedListIds }) => onEdit(task.id, { title, linkedListIds: nextLinkedListIds })}
       />
-      {onPullToToday && (
+      <div className="task-menu-wrap" ref={menuOpen ? menuRef : null}>
         <button
-          className="task-pull-today-btn"
           type="button"
-          onClick={() => {
-            void onPullToToday(task.id);
-          }}
-          aria-label={`Pull ${task.title} into Today`}
+          className="task-menu-trigger"
+          aria-haspopup="true"
+          aria-expanded={menuOpen}
+          aria-label={`Options for ${task.title}`}
+          onClick={() => setMenuOpen((current) => !current)}
         >
-          → Today
+          <span aria-hidden="true">⋮</span>
         </button>
-      )}
-      <button
-        className="task-delete"
-        type="button"
-        onClick={() => {
-          void onDelete(task.id);
-        }}
-        aria-label={`Delete ${task.title}`}
-      >
-        🗑
-      </button>
+        {menuOpen && (
+          <div
+            className={menuOpensUpward ? 'task-menu-dropdown task-menu-dropdown-up' : 'task-menu-dropdown'}
+            role="menu"
+            ref={menuDropdownRef}
+          >
+            <button
+              type="button"
+              className="task-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                editModalRef.current?.open();
+              }}
+            >
+              Edit
+              <span aria-hidden="true">✏️</span>
+            </button>
+            {onPullToToday && (
+              <button
+                type="button"
+                className="task-menu-item"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  void onPullToToday(task.id);
+                }}
+              >
+                Pull into Today
+                <span aria-hidden="true">→</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="task-menu-item task-menu-item-danger"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                void onDelete(task.id);
+              }}
+            >
+              Delete
+              <span aria-hidden="true">🗑</span>
+            </button>
+          </div>
+        )}
+      </div>
     </li>
   );
 }

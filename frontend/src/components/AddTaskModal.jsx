@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
-export default function AddTaskModal({
+const AddTaskModal = forwardRef(function AddTaskModal({
   buttonLabel,
   buttonClassName = 'add-task-open-btn',
+  hideTrigger = false,
   dialogTitle,
   listOptions = [],
   initialTitle = '',
   initialSelectedListIds = [],
   submitLabel = 'Save task',
   onSubmit,
-}) {
+}, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState(initialTitle);
   const [selectedLinkedListIds, setSelectedLinkedListIds] = useState(initialSelectedListIds);
@@ -41,6 +42,8 @@ export default function AddTaskModal({
     setIsOpen(true);
   }
 
+  useImperativeHandle(ref, () => ({ open: openModal }));
+
   function toggleLinkedList(listId) {
     setSelectedLinkedListIds((current) => {
       if (current.includes(listId)) {
@@ -67,9 +70,11 @@ export default function AddTaskModal({
 
   return (
     <>
-      <button className={buttonClassName} type="button" onClick={openModal}>
-        {buttonLabel}
-      </button>
+      {!hideTrigger && (
+        <button className={buttonClassName} type="button" onClick={openModal}>
+          {buttonLabel}
+        </button>
+      )}
 
       {isOpen && (
         <div className="task-modal-overlay" role="presentation" onClick={() => setIsOpen(false)}>
@@ -149,4 +154,6 @@ export default function AddTaskModal({
       )}
     </>
   );
-}
+});
+
+export default AddTaskModal;

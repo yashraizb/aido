@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -25,7 +25,10 @@ export default function PrimarySidebar({
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listsExpanded, setListsExpanded] = useState(active === 'lists');
   const [openMenuListId, setOpenMenuListId] = useState(null);
+  const [menuOpensUpward, setMenuOpensUpward] = useState(false);
   const openMenuRef = useRef(null);
+  const menuDropdownRef = useRef(null);
+  const sectionRef = useRef(null);
 
   const filteredLists = lists.filter((list) =>
     list.name.toLowerCase().includes(listSearchQuery.toLowerCase())
@@ -52,6 +55,21 @@ export default function PrimarySidebar({
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleEscape);
     };
+  }, [openMenuListId]);
+
+  useLayoutEffect(() => {
+    if (openMenuListId === null) {
+      setMenuOpensUpward(false);
+      return;
+    }
+    const dropdown = menuDropdownRef.current;
+    if (!dropdown) return;
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const sectionBottom = sectionRef.current
+      ? sectionRef.current.getBoundingClientRect().bottom
+      : window.innerHeight;
+    const availableBottom = Math.min(sectionBottom, window.innerHeight);
+    setMenuOpensUpward(dropdownRect.bottom > availableBottom);
   }, [openMenuListId]);
 
   function handleSelectList(listId, checked) {
@@ -93,7 +111,7 @@ export default function PrimarySidebar({
         </div>
 
         {listsExpanded && (
-        <div className="sidebar-lists-section" aria-label="Task lists">
+        <div className="sidebar-lists-section" aria-label="Task lists" ref={sectionRef}>
           <input
             className="list-search-input"
             type="text"
@@ -188,7 +206,11 @@ export default function PrimarySidebar({
                           <span aria-hidden="true">⋮</span>
                         </button>
                         {openMenuListId === list.id && (
-                          <div className="list-menu-dropdown" role="menu">
+                          <div
+                            className={menuOpensUpward ? 'list-menu-dropdown list-menu-dropdown-up' : 'list-menu-dropdown'}
+                            role="menu"
+                            ref={menuDropdownRef}
+                          >
                             <button
                               type="button"
                               className="list-menu-item"
@@ -198,8 +220,8 @@ export default function PrimarySidebar({
                                 onStartRename(list.id, list.name);
                               }}
                             >
-                              <span aria-hidden="true">✏️</span>
                               Rename
+                              <span aria-hidden="true">✏️</span>
                             </button>
                             <button
                               type="button"
@@ -210,8 +232,8 @@ export default function PrimarySidebar({
                                 onDeleteList(list.id);
                               }}
                             >
-                              <span aria-hidden="true">🗑</span>
                               Delete
+                              <span aria-hidden="true">🗑</span>
                             </button>
                           </div>
                         )}
