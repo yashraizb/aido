@@ -91,6 +91,35 @@ body {
   padding: 20px;
 }
 
+.primary-sidebar {
+  background: #fcfdff;
+  border-right: 1px solid #e7ebf0;
+  min-height: 100vh;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-lists-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.list-search-input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.list-search-input:focus {
+  outline: 2px solid #d3e3fd;
+  border-color: var(--accent);
+}
+
 .lists-sidebar {
   background: #fcfdff;
   border: 1px solid #e7ebf0;
